@@ -48,7 +48,12 @@ def execute_algorithm(algorithm_type, archive_folder_path):
         # Get path to store monomer group's results
         monomer_group_path = os.path.join(MONOMER_PATH, monomer_group)
         # Execute the registration program
-        my_run(f"python {algorithm_type}.py --group_path={monomer_group_path} --slide_type=monomer")
+        my_run(f"python all_in_one.py \
+                --group_path={monomer_group_path} \
+                --result_path={RESULT_PATH} \
+                --slide_type=monomer \
+                --method={algorithm_type}")
+        
         # Create archive folder for this group of data
         monomer_group_result_path = os.path.join(monomer_result_path, monomer_group+"-result")
         # Copy results from result folder to archive folder
@@ -63,7 +68,12 @@ def execute_algorithm(algorithm_type, archive_folder_path):
         # Get path to store monomer group's results
         polysome_group_path = os.path.join(POLYSOME_PATH, polysome_group)
         # Execute the registration program
-        my_run(f"python {algorithm_type}.py --group_path={polysome_group_path} --slide_type=polysome")
+        my_run(f"python all_in_one.py \
+                --group_path={polysome_group_path} \
+                --result_path={RESULT_PATH} \
+                --slide_type=polysome \
+                --method={algorithm_type}")
+        
         # Create archive folder for this group of data
         polysome_group_result_path = os.path.join(polysome_result_path, polysome_group+"-result")
         # Copy results from result folder to archive folder

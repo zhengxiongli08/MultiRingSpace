@@ -14,7 +14,7 @@ from preprocess import monomer_preprocess, polysome_preprocess
 # Global variables
 PARAMS = {}
 myLogger = Logger()
-RESULT_PATH = "../../result"
+RESULT_PATH = "../../result2"
 
 
 # Main function

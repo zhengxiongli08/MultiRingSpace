@@ -1,11 +1,10 @@
 
 import sys
-
-LOG_PATH = "/mnt/Disk1/whole_slide_image_analysis/Lizhengxiong/Projects/MultiRingSpace/result/result.log"
+import os
 
 class Logger():
-    def __init__(self, log_path=LOG_PATH):
-        
+    def __init__(self, result_path="./result"):
+        log_path = os.path.join(result_path, "result.log")
         self.terminal = sys.stdout
         self.log = open(log_path, "a", buffering=64, encoding="utf-8")
         

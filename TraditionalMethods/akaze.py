@@ -11,27 +11,23 @@ from logger import Logger
 from preprocess import monomer_preprocess, polysome_preprocess
 
 
-# Global variables
-PARAMS = {}
-myLogger = Logger()
-RESULT_PATH = "../../result"
-
-
 # Main function
-def get_params():
+def get_params(params: dict):
     """
     Get parameters from terminal.
     """
     parser = argparse.ArgumentParser(description="Indicate the slide group's path and slide type(monomer/polysome).")
     parser.add_argument("--group_path", type=str, default="../../BiopsyDatabase/monomer/case6-group3", help="slide group's path")
+    parser.add_argument("--result_path", type=str, default="../../result", help="results' folder")
     parser.add_argument("--slide_type", type=str, default="monomer", help="slide type, monomer/polysome")
     parser.add_argument("--weight", type=float, default=0.8, help="weight used for figure out good match")
     # Put them in a dictionary
     args = parser.parse_args()
-    PARAMS["group_path"] = args.group_path
-    PARAMS["slide_type"] = args.slide_type
-    PARAMS["weight"] = args.weight
-    group_path = PARAMS["group_path"]
+    params["group_path"] = args.group_path
+    params["result_path"] = args.result_path
+    params["slide_type"] = args.slide_type
+    params["weight"] = args.weight
+    group_path = params["group_path"]
     # Get the exact path of 2 slides
     slide_list = list()
     for file in os.listdir(group_path):
@@ -40,25 +36,29 @@ def get_params():
             
     slide_1_path = os.path.join(group_path, slide_list[0])
     slide_2_path = os.path.join(group_path, slide_list[1])
-    PARAMS["slide_1_path"] = slide_1_path
-    PARAMS["slide_2_path"] = slide_2_path
-    # Record dict's information
-    myLogger.print("Start image registration using AKAZE algorithm.")
-    myLogger.print("{:<20} {}".format("Parameter", "Value"))
-    for i in PARAMS:
-        myLogger.print("{:<20} {}".format(i, PARAMS[i]))
-    myLogger.print()
+    params["slide_1_path"] = slide_1_path
+    params["slide_2_path"] = slide_2_path
 
     return
 
 
 def main():
     # Read parameters from terminal
-    get_params()
-    path_1 = PARAMS["slide_1_path"]
-    path_2 = PARAMS["slide_2_path"]
-    slide_type = PARAMS["slide_type"]
-    weight = PARAMS["weight"]
+    params = {}
+    get_params(params)
+    # Get necessary information
+    path_1 = params["slide_1_path"]
+    path_2 = params["slide_2_path"]
+    result_path = params["result_path"]
+    slide_type = params["slide_type"]
+    weight = params["weight"]
+    myLogger = Logger(result_path)
+    # Record dict's information
+    myLogger.print("Start image registration using AKAZE algorithm.")
+    myLogger.print("{:<20} {}".format("Parameter", "Value"))
+    for i in params:
+        myLogger.print("{:<20} {}".format(i, params[i]))
+    myLogger.print()
     
     # Preprocess images
     match slide_type:
@@ -91,13 +91,13 @@ def main():
     img_match = cv.drawMatchesKnn(img_1_nobg, kp_1, img_2_nobg, kp_2, good_match, None, flags=2)
     
     # Save the intermediate and final results
-    img_1_origin_path = os.path.join(RESULT_PATH, "img_1_origin.png")
-    img_2_origin_path = os.path.join(RESULT_PATH, "img_2_origin.png")
-    img_1_nobackground_path = os.path.join(RESULT_PATH, "img_1_nobackground.png")
-    img_2_nobackground_path = os.path.join(RESULT_PATH, "img_2_nobackground.png")
-    img_1_kp_path = os.path.join(RESULT_PATH, "img_1_kp.png")
-    img_2_kp_path = os.path.join(RESULT_PATH, "img_2_kp.png")
-    img_match_path = os.path.join(RESULT_PATH, "img_match.png")
+    img_1_origin_path = os.path.join(result_path, "img_1_origin.png")
+    img_2_origin_path = os.path.join(result_path, "img_2_origin.png")
+    img_1_nobackground_path = os.path.join(result_path, "img_1_nobackground.png")
+    img_2_nobackground_path = os.path.join(result_path, "img_2_nobackground.png")
+    img_1_kp_path = os.path.join(result_path, "img_1_kp.png")
+    img_2_kp_path = os.path.join(result_path, "img_2_kp.png")
+    img_match_path = os.path.join(result_path, "img_match.png")
     
     cv.imwrite(img_1_origin_path, img_1_origin)
     cv.imwrite(img_2_origin_path, img_2_origin)
