@@ -10,7 +10,12 @@ from PIL import Image
 
 def convert(img):
     """
-    Convert image format from RGB into BGR
+    Function:
+        Convert image format from RGB into BGR
+    
+    Since openslide read slides using PIL package, 
+    image's channels order is "RGB". 
+    But opencv image's channel order is "BGR". 
     """
     img_new = np.zeros_like(img)
     img_new[:, :, 0] = img[:, :, 2]
@@ -18,7 +23,6 @@ def convert(img):
     img_new[:, :, 2] = img[:, :, 0]
     
     return img_new
-
 
 def read_slide(path, dimension=5):
     """
@@ -32,27 +36,69 @@ def read_slide(path, dimension=5):
     
     return img
 
-def img_preprocess(img):
+def monomer_preprocess(path):
     """
-    Remove background from the original image.
-    """
-    img_new = rembg.remove(img)
-    
-    return img_new
-
-def preprocess(path):
-    """
-    Read slide, and preprocess it.
+    Read a monomer slide, and preprocess it.
     Including remove background and transform it into a gray scale image.
     """
     img_origin = read_slide(path)
-    img_nobg = img_preprocess(img_origin)
-    img_nobg_gray = cv.cvtColor(img_nobg, cv.COLOR_BGR2GRAY)
+    temp = rembg.remove(img_origin)
+    # After processing using rembg, there are 4 channels, we only need 3 (BGR)
+    channels = cv.split(temp)
+    img_nobg = cv.merge(channels[:3])
+    img_nobg_gray = cv.cvtColor(temp, cv.COLOR_BGR2GRAY)
     
+    return img_origin, img_nobg, img_nobg_gray
+
+def polysome_preprocess(path):
+    """
+    Read a polysome slide, and preprocess it.
+    Including remove background and transform it into a gray scale image.
+    """
+    img_origin = read_slide(path)
+    img_nobg = img_origin.copy()
+    # Remove background
+    height = img_origin.shape[0]
+    width = img_origin.shape[1]
+    for i in range(0, height):
+        for j in range(0, width):
+            b = int(img_origin[i, j][0])
+            g = int(img_origin[i, j][1])
+            r = int(img_origin[i, j][2])
+            yellow_flag = (r > g) and (g > b)
+            blue_flag = (b > g) and (g > r)
+            purple_flag = (b > g) and (r > g)
+            
+            if (yellow_flag or blue_flag or purple_flag):
+                pass
+            else:
+                img_nobg[i, j] = [0, 0, 0]
+    # Transform it into gray scale
+    img_nobg_gray = cv.cvtColor(img_nobg, cv.COLOR_BGR2GRAY)
+                
     return img_origin, img_nobg, img_nobg_gray
     
 
 if __name__ == "__main__":
-    img = preprocess("../BiopsyDatabase/monomer/case1-group1/slide-2022-12-19T17-02-13-R5-S1.mrxs")
-    cv.imwrite("./result.png", img)
+    # img = preprocess("../BiopsyDatabase/monomer/case1-group1/slide-2022-12-19T17-02-13-R5-S1.mrxs")
+    # cv.imwrite("./result.png", img)
+    
+    import os
+    path = "../../SlidesThumbnail"
+    pics = os.listdir(path)
+    for name in pics:
+        print(f"Processing slide {name}")
+        pic_path = os.path.join(path, name)
+        pic = cv.imread(pic_path)
+        no_ext_name = os.path.splitext(name)[0]
+        pic_result = rembg.remove(pic)
+        
+        print(pic.shape)
+        temp = cv.merge(cv.split(pic_result)[:3])
+        print(pic_result.shape)
+        print(temp.shape)
+        
+        cv.imwrite(f"./result/{no_ext_name}.png", pic_result)
+        cv.imwrite(f"./result/channel.png", temp)
+        # break
     

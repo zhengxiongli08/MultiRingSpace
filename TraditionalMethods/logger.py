@@ -1,8 +1,10 @@
 
 import sys
 
+LOG_PATH = "/mnt/Disk1/whole_slide_image_analysis/Lizhengxiong/Projects/MultiRingSpace/result/result.log"
+
 class Logger():
-    def __init__(self, log_path="../result/result.log"):
+    def __init__(self, log_path=LOG_PATH):
         
         self.terminal = sys.stdout
         self.log = open(log_path, "a", buffering=64, encoding="utf-8")

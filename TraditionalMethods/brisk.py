@@ -6,15 +6,15 @@
 import os
 import cv2 as cv
 import numpy as np
-from preprocess import preprocess
 import argparse
 from logger import Logger
+from preprocess import monomer_preprocess, polysome_preprocess
 
 
 # Global variables
 PARAMS = {}
 myLogger = Logger()
-RESULT_PATH = "../result"
+RESULT_PATH = "../../result"
 
 
 # Main function
@@ -23,7 +23,7 @@ def get_params():
     Get parameters from terminal.
     """
     parser = argparse.ArgumentParser(description="Indicate the slide group's path and slide type(monomer/polysome).")
-    parser.add_argument("--group_path", type=str, default="../BiopsyDatabase/monomer/case1-group1", help="slide group's path")
+    parser.add_argument("--group_path", type=str, default="../../BiopsyDatabase/monomer/case1-group1", help="slide group's path")
     parser.add_argument("--slide_type", type=str, default="monomer", help="slide type, monomer/polysome")
     parser.add_argument("--weight", type=float, default=0.75, help="weight used for figure out good match")
     # Put them in a dictionary
@@ -57,11 +57,17 @@ def main():
     get_params()
     path_1 = PARAMS["slide_1_path"]
     path_2 = PARAMS["slide_2_path"]
+    slide_type = PARAMS["slide_type"]
     weight = PARAMS["weight"]
     
     # Preprocess images
-    img_1_origin, img_1_nobg, img_1_nobg_gray = preprocess(path_1)
-    img_2_origin, img_2_nobg, img_2_nobg_gray = preprocess(path_2)
+    match slide_type:
+        case "monomer":
+            img_1_origin, img_1_nobg, img_1_nobg_gray = monomer_preprocess(path_1)
+            img_2_origin, img_2_nobg, img_2_nobg_gray = monomer_preprocess(path_2)
+        case "polysome":
+            img_1_origin, img_1_nobg, img_1_nobg_gray = polysome_preprocess(path_1)
+            img_2_origin, img_2_nobg, img_2_nobg_gray = polysome_preprocess(path_2)
 
     # Match these images
     detector = cv.BRISK_create()
