@@ -89,11 +89,6 @@ def compute(params: dict, num: int, myLogger: Logger):
     diff_list = get_diff_list(conv_list)
     myLogger.print("Get differential list successfully!")
     
-    # import pickle
-    # with open("./diff_list.pkl", "wb") as file:
-    #     pickle.dump(diff_list, file)
-    #     print("Saved!")
-    
     # Get keypoints
     kp_list = get_keypoint_list(diff_list)
     myLogger.print("Get keypoints successfully!")
@@ -180,6 +175,7 @@ def main():
     # Record dict's information
     result_path = params["result_path"]
     myLogger = Logger(result_path)
+    myLogger.print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     myLogger.print(f"Start image registration using Multiple Ring Space algorithm.")
     myLogger.print("{:<20} {}".format("Parameter", "Value"))
     for i in params:
@@ -188,6 +184,8 @@ def main():
     
     # Process for slide 1
     compute(params, 1, myLogger)
+    
+    return
 
 if __name__ == "__main__":
     ti.init(arch=ti.gpu)
