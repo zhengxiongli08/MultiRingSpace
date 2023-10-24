@@ -2,13 +2,17 @@
 # Author: Zhengxiong Li
 # Email: zhengxiong_li@foxmail.com
 
-# 输入是图像的差分金字塔，返回关键点序列
+# Get keypoints from differential pyramid
 
 import taichi as ti
 import numpy as np
 import cv2 as cv
+import pickle
+import numba
+from numba import njit, prange
 
 
+# Functions
 @ti.func
 def get_max_value(img: ti.types.ndarray(), i: ti.i32, j: ti.i32) -> ti.i32:
     """
@@ -194,12 +198,10 @@ def get_color_keypoint_img(keypoints: list, img: np.ndarray) -> np.ndarray:
     
     return result_img
 
-# 测试用例
+# Test case
 if __name__ == "__main__":
     ti.init(arch = ti.cpu)
-    img = np.zeros((200, 200, 3), dtype=np.uint8)
-    kp1 = cv.KeyPoint(x=100, y=50, size=0)
-    kp2 = cv.KeyPoint(x=100, y=150, size=1)
-    kps = [kp1, kp2]
-    result = get_color_keypoint_img(kps, img)
-    cv.imwrite("color.png", result)
+    with open("diff_list.pkl", "rb") as file:
+        diff_list = pickle.load(file)
+        get_keypoint_list(diff_list)
+        

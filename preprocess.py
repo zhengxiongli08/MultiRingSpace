@@ -1,4 +1,5 @@
 # This program is used to remove background for monomer slides and polysome slides
+# 不去空洞，叠加到原图之上进行特征描述
 
 import openslide
 import rembg
@@ -32,8 +33,14 @@ def read_slide(path, dimension=5):
     img = slide.get_thumbnail(resolution)
     img = np.array(img)
     img = convert(img)
+    # Resize the image. Height should be 1024
+    height, width = img.shape[:2]
+    new_height = 1024
+    # new_width = int((width / height) * new_height)
+    # result = cv.resize(img, (new_width, new_height))
+    result = img
     
-    return img
+    return result
 
 def monomer_preprocess(path):
     """
