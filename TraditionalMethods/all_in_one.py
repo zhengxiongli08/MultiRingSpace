@@ -29,8 +29,8 @@ def get_params(params: dict):
     params["slide_type"] = args.slide_type
     params["method"] = args.method
     params["weight"] = args.weight
-    group_path = params["group_path"]
     # Get the exact path of 2 slides
+    group_path = params["group_path"]
     slide_list = list()
     for file in os.listdir(group_path):
         if file.endswith(".mrxs"):
