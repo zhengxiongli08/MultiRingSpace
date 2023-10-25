@@ -34,6 +34,20 @@ def map2list(kp_map):
     
     return kps_list
 
+@njit
+def is_max_value(part):
+    max_value = np.max(part)
+    if (part[1, 1] == max_value) and (np.count_nonzero(part == max_value) == 1):
+        return True
+    return False
+
+@njit
+def is_min_value(part):
+    min_value = np.min(part)
+    if (part[1, 1] == min_value) and (np.count_nonzero(part == min_value) == 1):
+        return True
+    return False
+
 @njit(parallel=True)
 def _get_kp(img_up, img_self, img_down):
     """
@@ -52,8 +66,10 @@ def _get_kp(img_up, img_self, img_down):
             img_down_min = np.min(img_down_part)
             
             pixel = img_self[i, j]
-            self_max = (pixel == np.max(img_self_part))
-            self_min = (pixel == np.min(img_self_part))
+            # self_max = (pixel == np.max(img_self_part))
+            # self_min = (pixel == np.min(img_self_part))
+            self_max = is_max_value(img_self_part)
+            self_min = is_min_value(img_self_part)
             
             flag_max = self_max and (pixel > img_up_max) and (pixel > img_down_max)
             flag_min = self_min and (pixel < img_up_min) and (pixel < img_down_min)
