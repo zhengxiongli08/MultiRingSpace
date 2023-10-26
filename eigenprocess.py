@@ -3,6 +3,8 @@
 # Email: zhengxiong_li@foxmail.com
 
 # 由关键点序列和差分图构建特征向量（特征描述子部分）
+# 补充均值阈值分割
+# 多次旋转迭代？
 
 import numpy as np
 import cv2 as cv

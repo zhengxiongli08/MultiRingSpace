@@ -34,6 +34,14 @@ def map2list(kp_map):
     
     return kps_list
 
+def map2array(kp_map):
+    """
+    Transform keypoints map into a numpy array
+    """
+    coordinates = np.argwhere((kp_map == 1) | (kp_map == -1))
+
+    return coordinates
+
 @njit
 def is_max_value(part):
     max_value = np.max(part)
@@ -49,7 +57,7 @@ def is_min_value(part):
     return False
 
 @njit(parallel=True)
-def _get_kp(img_up, img_self, img_down):
+def _get_kp(img_up, img_self, img_down) -> np.ndarray:
     """
     Get a keypoint map for 3 layes, up, down and self
     """
@@ -78,7 +86,7 @@ def _get_kp(img_up, img_self, img_down):
                 result[i, j] = 1
             elif (flag_min):
                 result[i, j] = -1
-
+                
     return result
 
 def get_keypoint_list(diff_list):
@@ -95,9 +103,31 @@ def get_keypoint_list(diff_list):
         img_down = diff_list[i - 1]
         
         kps = _get_kp(img_self, img_up, img_down)
+        kps = map2list(kps)
         keypoint_list.append(kps)
-        
+    
     return keypoint_list
+
+def get_keypoint_array(diff_list):
+    """
+    Get keypoint map list from differential pyramid
+    """
+    keypoint_list = list()
+    diff_depth = len(diff_list)
+    # Traverse differential pyramid
+    for i in range(1, diff_depth - 1):
+        # 3 layers, up, down, self
+        img_self = diff_list[i]
+        img_up = diff_list[i + 1]
+        img_down = diff_list[i - 1]
+        
+        kps = _get_kp(img_self, img_up, img_down)
+        kps = map2array(kps)
+        keypoint_list.append(kps)
+    
+    result = np.vstack(keypoint_list)
+
+    return result
 
 def get_color_keypoint_img(keypoints: list, img: np.ndarray) -> np.ndarray:
     """
@@ -129,15 +159,16 @@ if __name__ == "__main__":
     with open("./diff_list.pkl", "rb") as file:
         diff_list = pickle.load(file)
         print(diff_list[0].shape)
-        a = get_keypoint_list(diff_list)
-        image = cv.imread("../SlidesThumbnail/slide-2022-12-19T17-59-32-R5-S14.tiff")
-        count = 0
-        for i in a:
-            count += 1
-            kps_list = map2list(i)
-            print(len(kps_list))
-            new_img = get_color_keypoint_img(kps_list, image)
-            cv.imwrite(f"../result/{count}.png", new_img)
+        a = get_keypoint_array(diff_list)
+        # image = cv.imread("../SlidesThumbnail/slide-2022-12-19T17-59-32-R5-S14.tiff")
+        # count = 0
+        # for i in a:
+        #     count += 1
+        #     kps_list = map2list(i)
+        #     print(len(kps_list))
+        #     new_img = get_color_keypoint_img(kps_list, image)
+        #     cv.imwrite(f"../result/{count}.png", new_img)
+        print(a.shape)
 
 
     pass

@@ -8,6 +8,7 @@ import argparse
 import os
 import taichi as ti
 import cv2 as cv
+import pickle
 from logger import Logger
 from preprocess import monomer_preprocess, polysome_preprocess
 from conv import get_mask_list, get_conv_list, get_diff_list
@@ -93,6 +94,16 @@ def compute(params: dict, num: int, myLogger: Logger):
     kp_list = get_keypoint_list(diff_list)
     myLogger.print("Get keypoints successfully!")
     
+    with open("./img_nobg_gray.pkl", "wb") as file:
+        pickle.dump(img_nobg_gray, file)
+    with open("./diff_list.pkl", "wb") as file:
+        pickle.dump(diff_list, file)
+    with open("./kp_list.pkl", "wb") as file:
+        pickle.dump(kp_list, file)
+    with open("./mask_list.pkl", "wb") as file:
+        pickle.dump(mask_list, file)
+    return
+    
     # Get eigenvector
     keypoints, eigens = get_eigen(img_nobg_gray, diff_list, kp_list, mask_list)
     myLogger.print("Get eigen vectors successfully!")
@@ -131,31 +142,6 @@ def compute(params: dict, num: int, myLogger: Logger):
     
     return keypoints, eigens
     
-    
-#     # 获取关键点
-#     keypoint_list = kpprocess.get_keypoint_list(diff_list)
-#     for i in range(0, len(keypoint_list)):
-#         print("Diff img{0} keypoints number:".format(i), len(keypoint_list[i]))
-#         img_color = kpprocess.get_color_keypoint_img(keypoint_list[i], img_original)
-#         cv.imwrite(target_path + "img_keypoint_color_{0}.png".format(i), img_color)
-#     print("Get keypoint list successfully!")
-    
-#     # 特征向量描述
-#     keypoints, eigens = eigenprocess.get_eigen(img_expand, diff_list, keypoint_list, mask_list)
-#     print("Get eigen vector successfully! \n")
-    
-#     return keypoints, eigens
-    
-# # Main function
-# if __name__ == "__main__":
-    
-#     # 读取图像
-#     img_1 = cv.imread(IMG_PATH_1)
-#     img_2 = cv.imread(IMG_PATH_2)
-#     # 获取关键点位置和特征向量
-#     keypoints_1, eigens_1 = compute(img_1, TARGET_PATH_1)
-#     keypoints_2, eigens_2 = compute(img_2, TARGET_PATH_2)
-#     # 找到匹配对
 #     good_matches = match.bf_match(eigens_1, eigens_2, threshold=0.7)
     
 #     # 画出结果
@@ -182,8 +168,9 @@ def main():
         myLogger.print("{:<20} {}".format(i, params[i]))
     myLogger.print()
     
-    # Process for slide 1
-    compute(params, 1, myLogger)
+    # Process for slide 1 & 2
+    kps_1, eigens_1 = compute(params, 1, myLogger)
+    # kps_2, eigens_2 = compute(params, 2, myLogger)
     
     return
 
