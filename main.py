@@ -94,26 +94,22 @@ def compute(params: dict, num: int, myLogger: Logger):
     kp_list = get_keypoint_list(diff_list)
     myLogger.print("Get keypoints successfully!")
     
-    with open("./img_nobg_gray.pkl", "wb") as file:
-        pickle.dump(img_nobg_gray, file)
-    with open("./diff_list.pkl", "wb") as file:
-        pickle.dump(diff_list, file)
-    with open("./kp_list.pkl", "wb") as file:
-        pickle.dump(kp_list, file)
-    with open("./mask_list.pkl", "wb") as file:
-        pickle.dump(mask_list, file)
-    return
+    # with open("./img_nobg_gray.pkl", "wb") as file:
+    #     pickle.dump(img_nobg_gray, file)
+    # with open("./diff_list.pkl", "wb") as file:
+    #     pickle.dump(diff_list, file)
+    # with open("./kp_list.pkl", "wb") as file:
+    #     pickle.dump(kp_list, file)
+    # with open("./mask_list.pkl", "wb") as file:
+    #     pickle.dump(mask_list, file)
+    # return
     
     # Get eigenvector
     keypoints, eigens = get_eigen(img_nobg_gray, diff_list, kp_list, mask_list)
     myLogger.print("Get eigen vectors successfully!")
     
     # Save results
-    match num:
-        case 1: 
-            slide_result_path = os.path.join(result_path, "slide-1")
-        case 2:
-            slide_result_path = os.path.join(result_path, "slide-2")
+    slide_result_path = os.path.join(result_path, f"slide-{num}")
     if not os.path.exists(slide_result_path):
         os.mkdir(slide_result_path)
     # Save original, no background, nobg & gray scale image
