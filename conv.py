@@ -12,7 +12,10 @@ from numba import njit, prange
 
 # Functions
 @ti.func
-def loc_conv(img_expand: ti.types.ndarray(), mask: ti.types.ndarray(), i: ti.i32, j: ti.i32) -> ti.float32:
+def loc_conv(img_expand: ti.types.ndarray(), 
+             mask: ti.types.ndarray(), 
+             coor_h: ti.i32, 
+             coor_w: ti.i32) -> ti.float32:
     """
     Function:
         Do convolution in designated position
@@ -28,13 +31,15 @@ def loc_conv(img_expand: ti.types.ndarray(), mask: ti.types.ndarray(), i: ti.i32
     radius = int((mask.shape[0] - 1) / 2)
     size = mask.shape[0]
     for k, l in ti.ndrange((0, size), (0, size)):
-        img_value = img_expand[i-radius+k, j-radius+l]
+        img_value = img_expand[coor_h-radius+k, coor_w-radius+l]
         mask_value = mask[k, l]
         result += img_value * mask_value
     return result
 
 @ti.kernel
-def _convolve(img_expand: ti.types.ndarray(), mask: ti.types.ndarray(), result: ti.types.ndarray()):
+def _convolve(img_expand: ti.types.ndarray(), 
+              mask: ti.types.ndarray(), 
+              result: ti.types.ndarray()):
     """
     Function:
         Calculate the convolution result for an already expanded image
@@ -51,7 +56,8 @@ def _convolve(img_expand: ti.types.ndarray(), mask: ti.types.ndarray(), result: 
     
     return
 
-def convolve(img: np.ndarray, mask: ti.ndarray) -> np.ndarray:
+def convolve(img: np.ndarray, 
+             mask: ti.ndarray) -> np.ndarray:
     """
     Function:
         Copy pixels at the boundaries, then send it to Taichi function
@@ -98,7 +104,9 @@ def build_ring(radius: int, thickness: int) -> np.ndarray:
     
     return mask
 
-def get_mask_list(radius_min: int, radius_max: int, thickness: int) -> list:
+def get_mask_list(radius_min: int, 
+                  radius_max: int, 
+                  thickness: int) -> list:
     """
     Function:
         Get list of convolution list, 
@@ -119,7 +127,8 @@ def get_mask_list(radius_min: int, radius_max: int, thickness: int) -> list:
     
     return result_list
 
-def get_conv_list(img: np.ndarray, mask_list: list) -> list:
+def get_conv_list(img: np.ndarray, 
+                  mask_list: list) -> list:
     """
     Function:
         Get convolution image pyramid
