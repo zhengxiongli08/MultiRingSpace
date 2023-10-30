@@ -12,8 +12,9 @@ import pickle
 from logger import Logger
 from preprocess import monomer_preprocess, polysome_preprocess
 from conv import get_mask_list, get_conv_list, get_diff_list
-from keypoint import get_keypoint_array, get_color_keypoint_img
+from keypoint import get_kps, get_color_keypoint_img
 from eigen import get_eigens
+from match import Matching
 
 
 # Functions
@@ -71,11 +72,10 @@ def compute(params: dict, num: int, myLogger: Logger):
     # Begin compute keypoints and eigenvector
     myLogger.print(f"Start processing for slide {num}.")
     # Read image and preprocess it
-    match slide_type:
-        case "monomer":
-            img_origin, img_nobg, img_nobg_gray = monomer_preprocess(path)
-        case "polysome":
-            img_origin, img_nobg, img_nobg_gray = polysome_preprocess(path)
+    if (slide_type == "monomer"):
+        img_origin, img_nobg, img_nobg_gray = monomer_preprocess(path)
+    elif (slide_type == "polysome"):
+        img_origin, img_nobg, img_nobg_gray = polysome_preprocess(path)
     myLogger.print("Preprocess completed successfully!")
             
     # Get list of convolution kernels
@@ -91,22 +91,11 @@ def compute(params: dict, num: int, myLogger: Logger):
     myLogger.print("Get differential list successfully!")
     
     # Get keypoints
-    kps = get_keypoint_array(diff_list)
+    kps = get_kps(diff_list)
     myLogger.print("Get keypoints successfully!")
     
-    # with open("./temp/img_nobg_gray.pkl", "wb") as file:
-    #     pickle.dump(img_nobg_gray, file)
-    # with open("./temp/diff_list.pkl", "wb") as file:
-    #     pickle.dump(diff_list, file)
-    # with open("./temp/kp_list.pkl", "wb") as file:
-    #     pickle.dump(kps, file)
-    # with open("./temp/mask_list.pkl", "wb") as file:
-    #     pickle.dump(mask_list, file)
-    
-    # raise RuntimeError("Error message")
-    
     # Get eigenvector
-    keypoints, eigens = get_eigen(img_nobg_gray, diff_list, kps, mask_list)
+    eigens = get_eigens(img_nobg_gray, kps, mask_list)
     myLogger.print("Get eigen vectors successfully!")
     
     # Save results
@@ -130,14 +119,13 @@ def compute(params: dict, num: int, myLogger: Logger):
         temp = cv.applyColorMap(diff_list[i], cv.COLORMAP_WINTER)
         cv.imwrite(diff_img_path, temp)
     # Save keypoints map
-    for i in range(0, len(kps)):
-        myLogger.print(f"Differental image {i}'s keypoints number: {len(kps[i])}")
-        img_color = get_color_keypoint_img(kps[i], img_nobg)
-        kp_color_path = os.path.join(slide_result_path, f"img_kp_color_{i}")
-        cv.imwrite(kp_color_path, img_color)
+    myLogger.print(f"Total keypoints number: {kps.shape[0]}")
+    img_color = get_color_keypoint_img(img_nobg, kps)
+    kp_color_path = os.path.join(slide_result_path, f"img_kp_color.png")
+    cv.imwrite(kp_color_path, img_color)
     
     
-    return keypoints, eigens
+    return kps, eigens
     
 #     good_matches = match.bf_match(eigens_1, eigens_2, threshold=0.7)
     
@@ -167,12 +155,15 @@ def main():
     
     # Process for slide 1 & 2
     kps_1, eigens_1 = compute(params, 1, myLogger)
-    # kps_2, eigens_2 = compute(params, 2, myLogger)
+    kps_2, eigens_2 = compute(params, 2, myLogger)
+    
+    # Match them
+    MatchResultA, MatchResultB = Matching(kps_1, eigens_1, kps_2, eigens_2)
     
     return
 
 if __name__ == "__main__":
-    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     ti.init(arch=ti.gpu)
     main()
         

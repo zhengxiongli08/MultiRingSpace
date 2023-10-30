@@ -69,7 +69,7 @@ def map2array(kp_map):
 
     return coordinates
 
-def get_keypoint_array(diff_list):
+def get_kps(diff_list):
     """
     Get keypoint map from differential pyramid, 
     then transform it into a series of numpy array, 
@@ -94,7 +94,7 @@ def get_keypoint_array(diff_list):
 
     return result
 
-def get_color_keypoint_img(keypoints: np.ndarray, img: np.ndarray) -> np.ndarray:
+def get_color_keypoint_img(img: np.ndarray, keypoints: np.ndarray) -> np.ndarray:
     """
     Functions:
         Draw keypoints on the input image.
@@ -118,7 +118,7 @@ if __name__ == "__main__":
     import pickle
     with open("./temp/diff_list.pkl", "rb") as file:
         diff_list = pickle.load(file)
-    kps = get_keypoint_array(diff_list)
+    kps = get_kps(diff_list)
     image = cv.imread("../SlidesThumbnail/slide-2022-12-19T17-59-32-R5-S14.tiff")
     result = get_color_keypoint_img(kps, image)
     cv.imwrite("./kp.png", result)
