@@ -1,10 +1,12 @@
 
 # This program is used to get the eigen vectors for keypoints
 
+import taichi as ti
 import numba
 import numpy as np
 import pickle
 from numba import njit, prange
+from conv import loc_conv
 
 
 # Functions

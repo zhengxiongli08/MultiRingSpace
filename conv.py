@@ -12,7 +12,7 @@ from numba import njit, prange
 
 # Functions
 @ti.func
-def loc_conv(img_expand: ti.types.ndarray(), 
+def loc_conv(src: ti.types.ndarray(), 
              mask: ti.types.ndarray(), 
              coor_h: ti.i32, 
              coor_w: ti.i32) -> ti.float32:
@@ -20,7 +20,7 @@ def loc_conv(img_expand: ti.types.ndarray(),
     Function:
         Do convolution in designated position
     Args:
-        img: image input, already expanded at boundaries
+        src: source matrix
         mask: convolution kernel
         i: convolution coordinates in height direction
         j: convolution coordinates in width direction
@@ -31,7 +31,7 @@ def loc_conv(img_expand: ti.types.ndarray(),
     radius = int((mask.shape[0] - 1) / 2)
     size = mask.shape[0]
     for k, l in ti.ndrange((0, size), (0, size)):
-        img_value = img_expand[coor_h-radius+k, coor_w-radius+l]
+        img_value = src[coor_h-radius+k, coor_w-radius+l]
         mask_value = mask[k, l]
         result += img_value * mask_value
     return result
