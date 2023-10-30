@@ -34,6 +34,7 @@ def loc_conv(src: ti.types.ndarray(),
         img_value = src[coor_h-radius+k, coor_w-radius+l]
         mask_value = mask[k, l]
         result += img_value * mask_value
+        
     return result
 
 @ti.kernel
