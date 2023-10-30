@@ -12,8 +12,8 @@ import pickle
 from logger import Logger
 from preprocess import monomer_preprocess, polysome_preprocess
 from conv import get_mask_list, get_conv_list, get_diff_list
-from kpprocess import get_keypoint_list, get_color_keypoint_img
-from eigenprocess import get_eigen
+from kpprocess import get_keypoint_array, get_color_keypoint_img
+from source.eigenprocess_bk import get_eigen
 
 
 # Functions
@@ -91,21 +91,22 @@ def compute(params: dict, num: int, myLogger: Logger):
     myLogger.print("Get differential list successfully!")
     
     # Get keypoints
-    kp_list = get_keypoint_list(diff_list)
+    kps = get_keypoint_array(diff_list)
     myLogger.print("Get keypoints successfully!")
     
-    # with open("./img_nobg_gray.pkl", "wb") as file:
+    # with open("./temp/img_nobg_gray.pkl", "wb") as file:
     #     pickle.dump(img_nobg_gray, file)
-    # with open("./diff_list.pkl", "wb") as file:
+    # with open("./temp/diff_list.pkl", "wb") as file:
     #     pickle.dump(diff_list, file)
-    # with open("./kp_list.pkl", "wb") as file:
-    #     pickle.dump(kp_list, file)
-    # with open("./mask_list.pkl", "wb") as file:
+    # with open("./temp/kp_list.pkl", "wb") as file:
+    #     pickle.dump(kps, file)
+    # with open("./temp/mask_list.pkl", "wb") as file:
     #     pickle.dump(mask_list, file)
-    # return
+    
+    # raise RuntimeError("Error message")
     
     # Get eigenvector
-    keypoints, eigens = get_eigen(img_nobg_gray, diff_list, kp_list, mask_list)
+    keypoints, eigens = get_eigen(img_nobg_gray, diff_list, kps, mask_list)
     myLogger.print("Get eigen vectors successfully!")
     
     # Save results
@@ -129,9 +130,9 @@ def compute(params: dict, num: int, myLogger: Logger):
         temp = cv.applyColorMap(diff_list[i], cv.COLORMAP_WINTER)
         cv.imwrite(diff_img_path, temp)
     # Save keypoints map
-    for i in range(0, len(kp_list)):
-        myLogger.print(f"Differental image {i}'s keypoints number: {len(kp_list[i])}")
-        img_color = get_color_keypoint_img(kp_list[i], img_nobg)
+    for i in range(0, len(kps)):
+        myLogger.print(f"Differental image {i}'s keypoints number: {len(kps[i])}")
+        img_color = get_color_keypoint_img(kps[i], img_nobg)
         kp_color_path = os.path.join(slide_result_path, f"img_kp_color_{i}")
         cv.imwrite(kp_color_path, img_color)
     
@@ -171,7 +172,7 @@ def main():
     return
 
 if __name__ == "__main__":
+    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
     ti.init(arch=ti.gpu)
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     main()
         

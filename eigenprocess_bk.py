@@ -13,35 +13,6 @@ from conv import loc_conv
 
 
 # Functions
-def amalgamate_kp(keypoint_list: list) -> set:
-    """
-    Functions:
-        合并由差分图得出的关键点序列
-    Args:
-        keypoint_list: 差分图的关键点序列
-    Returns:
-        关键点序列的并集
-    """
-    result = set()
-    for keypoints in keypoint_list:
-        keypoints = set(keypoints)
-        result.update(keypoints)
-    
-    result = tuple(result)
-    
-    return result
-
-def keypoints_transform(keypoints: set) -> np.ndarray:
-    """
-    Function:
-        将关键点并集转换为一个nunpy数组，每一行都是一个关键点的信息
-    """
-    result = np.zeros((len(keypoints), 2), dtype=np.int32)
-    for i in range(0, len(keypoints)):
-        result[i] = keypoints[i].pt
-        
-    return result
-
 def generate_des_mat(masks: list, keypoints: np.ndarray, diff_list: list) -> np.ndarray:
     """
     Function:
