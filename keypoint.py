@@ -116,11 +116,11 @@ def get_color_keypoint_img(keypoints: np.ndarray, img: np.ndarray) -> np.ndarray
 # Test case
 if __name__ == "__main__":
     import pickle
-    with open("./diff_list.pkl", "rb") as file:
+    with open("./temp/diff_list.pkl", "rb") as file:
         diff_list = pickle.load(file)
-        kps = get_keypoint_array(diff_list)
-        image = cv.imread("../SlidesThumbnail/slide-2022-12-19T17-59-32-R5-S14.tiff")
-        result = get_color_keypoint_img(kps, image)
-        cv.imwrite("./kp.png", result)
+    kps = get_keypoint_array(diff_list)
+    image = cv.imread("../SlidesThumbnail/slide-2022-12-19T17-59-32-R5-S14.tiff")
+    result = get_color_keypoint_img(kps, image)
+    cv.imwrite("./kp.png", result)
 
         

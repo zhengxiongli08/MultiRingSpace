@@ -12,8 +12,8 @@ import pickle
 from logger import Logger
 from preprocess import monomer_preprocess, polysome_preprocess
 from conv import get_mask_list, get_conv_list, get_diff_list
-from kpprocess import get_keypoint_array, get_color_keypoint_img
-from source.eigenprocess_bk import get_eigen
+from keypoint import get_keypoint_array, get_color_keypoint_img
+from eigen import get_eigens
 
 
 # Functions
