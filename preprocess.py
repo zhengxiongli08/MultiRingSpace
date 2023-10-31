@@ -36,9 +36,9 @@ def read_slide(path, dimension=5):
     # Resize the image. Height should be 1024
     height, width = img.shape[:2]
     new_height = 1024
-    # new_width = int((width / height) * new_height)
-    # result = cv.resize(img, (new_width, new_height))
-    result = img
+    new_width = int((width / height) * new_height)
+    result = cv.resize(img, (new_width, new_height))
+    result = result
     
     return result
 

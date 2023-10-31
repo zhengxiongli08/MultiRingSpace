@@ -1,68 +1,48 @@
-"""-*- 老婆最美 -*-"""
-# @Project : Paper3  
-# @File : DrawPointLine.py 
-# @Time : 2023/10/22 21:39 
-# @Author : WaiL 
-# @Software: PyCharm
-"""
-功能：绘制并连线成对的点
-"""
+
+# This program is designed to draw the match image
+
+import cv2 as cv
 import numpy as np
-import matplotlib.pyplot as plt
-
-def PointLine(KpsA, KpsB, SizeKps, LineWidth):
-    # 输入:
-    # KpsA, KpsB: Numpy数据格式，[n*2]尺寸
-    # SizeKps:点的大小
-    # LineWidth: 线的粗细
-    #
-    # 创建一个新的图形
-    plt.figure()
-    # 绘制线连接对应的坐标
-    for i in range(KpsA.shape[0]):
-        plt.plot([KpsA[i, 0], KpsB[i, 0]], [KpsA[i, 1], KpsB[i, 1]], color='r', linewidth=LineWidth, zorder=1)
-    # 绘制点集合
-    plt.scatter(KpsA[:, 0], KpsA[:, 1], color='g', label='KpsA', s=SizeKps, zorder=2)
-    plt.scatter(KpsB[:, 0], KpsB[:, 1], color='b', label='KpsB', s=SizeKps, zorder=3)
-    # 设置Y轴翻转
-    plt.gca().invert_yaxis()
-    # 设置纵横比为1:1
-    plt.gca().set_aspect('equal')
-    # 添加图例
-    plt.legend()
-    # 显示图形
-    # plt.show()
+import pickle
 
 
-if __name__=="__main__":
-    # 创建示例的 A 和 B
-    print('__name__==__main__')
-    KpsA = np.random.rand(10, 2)  # 10行两列的随机点集合
-    KpsB = np.random.rand(10, 2)  # 10行两列的随机点集合
-    PointLine(KpsA, KpsB, SizeKps=50, LineWidth=1)
+# Functions
+def draw_line(img_1, img_2, kps_1, kps_2):
+    """
+    Draw lines between corresponding keypoints
+    Order of coordinates is (coor_h, coor_w)
+    But the order of cv.line is (coor_w, coor_h)
+    """
+    # Line's color
+    # GREEN = (0, 255, 0)
+    
+    # Determine shift value for coor_w
+    shift = img_1.shape[1]
+    # Combine the 2 images
+    img = np.hstack([img_1, img_2])
+    # Draw lines
+    for i in range(0, kps_1.shape[0]):
+        color = np.random.randint(0, 256, 3, dtype=np.uint8).tolist()
+        kp_1_coor_h, kp_1_coor_w = kps_1[i, 0], kps_1[i, 1]
+        kp_2_coor_h, kp_2_coor_w = kps_2[i, 0], kps_2[i, 1]
+        coor_left = (kp_1_coor_w, kp_1_coor_h)
+        coor_right = (kp_2_coor_w + shift, kp_2_coor_h)
+        img = cv.line(img, coor_left, coor_right, color=color, thickness=1)
+    
+    return img
 
-
-
-
-
-
-
-
-"""
-# 语法：
-1、
-
-参数：
-输出：
-"""
-# .............................................................................#
-"""
-# 小知识：
-1、
-
-"""
-# .............................................................................#
-"""
-# 实施例：
-
-"""
+if __name__ == "__main__":
+    img_1 = cv.imread("./temp/img_nobg_1.png")
+    img_2 = cv.imread("./temp/img_nobg_2.png")
+    with open("./temp/result_a.pkl", "rb") as file:
+        kps_1 = pickle.load(file)
+    with open("./temp/result_b.pkl", "rb") as file:
+        kps_2 = pickle.load(file)
+    
+    print(kps_1.shape)
+    print(kps_2.shape)
+    print(img_1.shape)
+    print(img_2.shape)
+    
+    result = draw_line(img_1, img_2, kps_1, kps_2)
+    cv.imwrite("./temp/result.png", result)

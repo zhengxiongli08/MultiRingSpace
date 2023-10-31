@@ -14,6 +14,7 @@ POLYSOME_PATH = "/mnt/Disk1/whole_slide_image_analysis/Lizhengxiong/Projects/Mul
 RESULT_PATH = "/mnt/Disk1/whole_slide_image_analysis/Lizhengxiong/Projects/MultiRingSpace/result2"
 ARCHIVE_PATH = "/mnt/Disk1/whole_slide_image_analysis/Lizhengxiong/Projects/MultiRingSpace/archive"
 
+# Functions
 def my_run(command: str):
     """
     A warp for subprocess.check_call function
@@ -78,6 +79,8 @@ def execute_algorithm(algorithm_type, archive_folder_path):
         polysome_group_result_path = os.path.join(polysome_result_path, polysome_group+"-result")
         # Copy results from result folder to archive folder
         shutil.copytree(RESULT_PATH, polysome_group_result_path)
+    
+    return
     
 def main():
     # Get current time

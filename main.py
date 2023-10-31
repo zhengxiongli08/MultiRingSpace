@@ -15,6 +15,7 @@ from conv import get_mask_list, get_conv_list, get_diff_list
 from keypoint import get_kps, get_color_keypoint_img
 from eigen import get_eigens
 from match import Matching
+from draw import draw_line
 
 
 # Functions
@@ -109,6 +110,7 @@ def compute(params: dict, num: int, myLogger: Logger):
     cv.imwrite(img_origin_path, img_origin)
     cv.imwrite(img_nobg_path, img_nobg)
     cv.imwrite(img_nobg_gray_path, img_nobg_gray)
+    params[f"img_nobg_{num}"] = img_nobg
     # Save convolution images
     for i in range(0, len(conv_list)):
         conv_img_path = os.path.join(slide_result_path, f"img_conv_{i}.png")
@@ -119,22 +121,12 @@ def compute(params: dict, num: int, myLogger: Logger):
         temp = cv.applyColorMap(diff_list[i], cv.COLORMAP_WINTER)
         cv.imwrite(diff_img_path, temp)
     # Save keypoints map
-    myLogger.print(f"Total keypoints number: {kps.shape[0]}")
+    myLogger.print(f"Total keypoints number for slide {num}: {kps.shape[0]}")
     img_color = get_color_keypoint_img(img_nobg, kps)
     kp_color_path = os.path.join(slide_result_path, f"img_kp_color.png")
     cv.imwrite(kp_color_path, img_color)
     
-    
     return kps, eigens
-    
-#     good_matches = match.bf_match(eigens_1, eigens_2, threshold=0.7)
-    
-#     # 画出结果
-#     img_match = cv.drawMatchesKnn(img_1, keypoints_1, img_2, keypoints_2, good_matches, None, flags=2)
-    
-#     cv.imwrite(folder_path + "/Match_result.png", img_match)
-    
-#     print("Process completed. Check your results.")
 
 def main():
     """
@@ -153,17 +145,28 @@ def main():
         myLogger.print("{:<20} {}".format(i, params[i]))
     myLogger.print()
     
+    # Start processing
     # Process for slide 1 & 2
     kps_1, eigens_1 = compute(params, 1, myLogger)
     kps_2, eigens_2 = compute(params, 2, myLogger)
     
     # Match them
-    MatchResultA, MatchResultB = Matching(kps_1, eigens_1, kps_2, eigens_2)
+    match_list_1, match_list_2 = Matching(kps_1, eigens_1, kps_2, eigens_2)
+    
+    # Draw lines to connect responding keypoints
+    result_path = params["result_path"]
+    match_img_path = os.path.join(result_path, "match_img.png")
+    img_nobg_1 = params["img_nobg_1"]
+    img_nobg_2 = params["img_nobg_2"]
+    match_img = draw_line(img_nobg_1, img_nobg_2, match_list_1, match_list_2)
+    cv.imwrite(match_img_path, match_img)
+
+    myLogger.print(f"Process complete. Check your results in {result_path}.")
     
     return
 
 if __name__ == "__main__":
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
     ti.init(arch=ti.gpu)
     main()
         

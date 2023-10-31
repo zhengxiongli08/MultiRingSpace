@@ -12,7 +12,7 @@ import faiss
 import heapq
 import cv2
 import time
-import draw
+import draw_bk
 
 def Euclidean(MatrixA, MatrixB):
     # 输入：
@@ -370,15 +370,15 @@ def Matching(KeypointA, EncodeA, KeypointB, EncodeB):
     # 几何一致性匹配
     KeypointA_GC, KeypointB_GC, Aff_M = GeometricConsistency(KeypointA[Index_KeypointA], KeypointB[Index_KeypointB])
     # 绘图查看几何一致性匹配结果
-    draw.PointLine(np.array(KeypointA_GC), np.array(KeypointB_GC), SizeKps=20, LineWidth=2)
+    # draw_bk.PointLine(np.array(KeypointA_GC), np.array(KeypointB_GC), SizeKps=20, LineWidth=2, path="geo.png")
     # 局部匹配
     MatchPointA, MatchPointB = DoLocalMatching(KeypointA, KeypointB, Aff_M, Similarity)
     # 显示局部匹配结果
-    draw.PointLine(MatchPointA, MatchPointB, SizeKps=10, LineWidth=1.5)
+    # draw_bk.PointLine(MatchPointA, MatchPointB, SizeKps=10, LineWidth=1.5, path="local.png")
     # 在获得匹配结果之前最后一次要求全局几何一致性
     MatchResultA, MatchResultB = LastGeometricConsistency(MatchPointA, MatchPointB)
     # 显示最终的匹配结果
-    draw.PointLine(MatchResultA, MatchResultB, SizeKps=10, LineWidth=1.5)
+    # draw_bk.PointLine(MatchResultA, MatchResultB, SizeKps=10, LineWidth=1.5, path="final.png")
     #
     return MatchResultA, MatchResultB
 
