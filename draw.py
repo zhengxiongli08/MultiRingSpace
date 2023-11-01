@@ -31,6 +31,16 @@ def draw_line(img_1, img_2, kps_1, kps_2):
     
     return img
 
+def rotate(img_1, img_2, kps_1, kps_2):
+    """
+    Rotate the second image to the same direction of the first image
+    """
+    H, Mask = cv.estimateAffinePartial2D(kps_2, kps_1, cv.RANSAC)
+    print(H)
+    print(Mask)
+    
+    return
+
 if __name__ == "__main__":
     img_1 = cv.imread("./temp/img_nobg_1.png")
     img_2 = cv.imread("./temp/img_nobg_2.png")
@@ -39,10 +49,7 @@ if __name__ == "__main__":
     with open("./temp/result_b.pkl", "rb") as file:
         kps_2 = pickle.load(file)
     
-    print(kps_1.shape)
-    print(kps_2.shape)
-    print(img_1.shape)
-    print(img_2.shape)
+    # result = draw_line(img_1, img_2, kps_1, kps_2)
+    # cv.imwrite("./temp/result.png", result)
     
-    result = draw_line(img_1, img_2, kps_1, kps_2)
-    cv.imwrite("./temp/result.png", result)
+    rotate(img_1, img_2, kps_1, kps_2)
