@@ -12,7 +12,7 @@ import faiss
 import heapq
 import cv2
 import time
-import draw_bk
+
 
 def Euclidean(MatrixA, MatrixB):
     # 输入：
