@@ -82,6 +82,7 @@ def get_rotate_angle(kps_1, kps_2):
     kp_length = kps_1.shape[0]
     angles_length = int(kp_length * (kp_length - 1) / 2)
     angles = np.zeros(angles_length)
+    # Calculate angle for each group
     for i in prange(0, kp_length):
         for j in prange(1, kp_length-i):
             angle_1 = get_line_angle(kps_1[i], kps_1[i+j])
@@ -90,7 +91,7 @@ def get_rotate_angle(kps_1, kps_2):
             index = (2 * kp_length - i - 1) * i / 2 + j - 1
             index = int(index)
             angles[index] = angle
-    print(f"Total length: {angles_length}")
+            
     rotate_angle = np.mean(angles)
     
     return rotate_angle
@@ -107,24 +108,41 @@ def get_rotate_angle(kps_1, kps_2):
     
 #     return
 
-def img_rotate(src, angle):
-    """逆时针旋转图像任意角度
-    Rotate input image in counterclockwise direction
-    Input angle should be radian value
+def img_rotate(img_1, img_2, kps_1, kps_2):
     """
-    h,w = src.shape[:2]
+    Rotate input image 2 in counterclockwise direction
+    Input angle should be radian value
+    Image 2 will be rotated
+    Images 1 is used for comparasion
+    """
+    angle = -get_rotate_angle(kps_1, kps_2)
+    h,w = img_2.shape[:2]
     center = (w//2, h//2)
     angle_degree = angle / pi * 180
     rotate_mat = cv.getRotationMatrix2D(center, angle_degree, 1.0)
-    # 调整旋转后的图像长宽
+    # Adjust height and width of rotated image
     rotated_h = int((w * np.abs(rotate_mat[0,1]) + (h * np.abs(rotate_mat[0,0]))))
     rotated_w = int((h * np.abs(rotate_mat[0,1]) + (w * np.abs(rotate_mat[0,0]))))
     rotate_mat[0,2] += (rotated_w - w) // 2
     rotate_mat[1,2] += (rotated_h - h) // 2
-    # 旋转图像
-    rotated_img = cv.warpAffine(src, rotate_mat, (rotated_w,rotated_h))
-
-    return rotated_img
+    # Rotate image
+    rotated_img = cv.warpAffine(img_2, rotate_mat, (rotated_w,rotated_h))
+    # Create image combo
+    left_h, left_w = img_1.shape[:2]
+    right_h, right_w = rotated_img.shape[:2]
+    # Calculate the scaling factor to make the heights equal
+    scaling_factor = right_h / left_h
+    # Resize the left image to match the height of the right image
+    new_w = int(left_w * scaling_factor)
+    left_image_resized = cv.resize(img_1, (new_w, right_h))
+    # Create a new image with combined width and height
+    final_w = new_w + right_w
+    final_h = right_h
+    combo = np.zeros((final_h, final_w, 3), dtype=np.uint8)
+    combo[:, :new_w] = left_image_resized
+    combo[:, new_w:] = rotated_img
+    
+    return combo
 
 if __name__ == "__main__":
     img_1 = cv.imread("./temp/img_nobg_1.png")
@@ -134,13 +152,6 @@ if __name__ == "__main__":
     with open("./temp/result_b.pkl", "rb") as file:
         kps_2 = pickle.load(file)
     
-    # kps_1 = np.random.uniform(-10, 10, (20000, 2))
-    # kps_2 = np.random.uniform(-10, 10, (20000, 2))
-    
-    rotate_angle = get_rotate_angle(kps_1, kps_2)
-    # print(rotate_angle)
-    
-    
     # img = cv.imread("./temp/result.png")
-    rotated_img = img_rotate(img_2, -rotate_angle)
+    rotated_img = img_rotate(img_1, img_2, kps_1, kps_2)
     cv.imwrite("./temp/img_2_rotated.png", rotated_img)

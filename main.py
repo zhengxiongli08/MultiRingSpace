@@ -15,7 +15,7 @@ from conv import get_mask_list, get_conv_list, get_diff_list
 from keypoint import get_kps, get_color_keypoint_img
 from eigen import get_eigens
 from match import Matching
-from draw import draw_line
+from draw import draw_line, img_rotate
 
 
 # Functions
@@ -59,11 +59,11 @@ def compute(params: dict, num: int, myLogger: Logger):
     Get keypoints and eigenvector
     """
     # Get necessary information
-    match num:
-        case 1: 
-            path = params["slide_1_path"]
-        case 2:
-            path = params["slide_2_path"]
+    if (num == 1):
+        path = params["slide_1_path"]
+    elif (num == 2):
+        path = params["slide_2_path"]
+        
     result_path = params["result_path"]
     slide_type = params["slide_type"]
     radius_min = params["radius_min"]
@@ -155,18 +155,24 @@ def main():
     
     # Draw lines to connect responding keypoints
     result_path = params["result_path"]
-    match_img_path = os.path.join(result_path, "match_img.png")
+    img_match_path = os.path.join(result_path, "img_match.png")
     img_nobg_1 = params["img_nobg_1"]
     img_nobg_2 = params["img_nobg_2"]
     match_img = draw_line(img_nobg_1, img_nobg_2, match_list_1, match_list_2)
-    cv.imwrite(match_img_path, match_img)
+    cv.imwrite(img_match_path, match_img)
+    myLogger.print("Image with matched lines saved.")
+    # Rotate for image 2 and save it
+    img_rotate_combo = img_rotate(img_nobg_1, img_nobg_2, kps_1, kps_2)
+    img_rotate_path = os.path.join(result_path, "rotate_combo.png")
+    cv.imwrite(img_rotate_path, img_rotate_combo)
+    myLogger.print("Image rotated combo saved.")
 
     myLogger.print(f"Process complete. Check your results in {result_path}.")
     
     return
 
 if __name__ == "__main__":
-    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+    # os.environ["CUDA_VISIBLE_DEVICES"] = "1"
     ti.init(arch=ti.gpu)
     main()
         

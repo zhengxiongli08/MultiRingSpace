@@ -16,7 +16,7 @@ import time
 
 def Euclidean(MatrixA, MatrixB):
     # 输入：
-    # MatrixA, MatrixB: Numpy数据类型,MatrixA的每行与MatrixB的每行计算欧氏距离，Distance中列=MatrixB的行数，其行=MatrixA的行数
+    # MatrixA, MatrixB: Numpy数据类型,=MatrixB的行数，其行=MatrixA的行数
     # 输出:
     # Distance行对应A图上的坐标顺序，列对应B图上的坐标顺序，注意【输出的是距离的平方】
     #
@@ -156,7 +156,7 @@ def GeometricConsistency(KeypointA, KeypointB):
             break
     # 报告迭代信息
     E_End = time.time()
-    print(f'全局迭代信息: 共计迭代{Loop}次,耗时{E_End-E_Start:.3f}秒，从暴力匹配中，迭代产生{Num_GoodKP}对关键点')
+    myLogger.print(f'全局迭代信息: 共计迭代{Loop}次,耗时{E_End-E_Start:.3f}秒，从暴力匹配中，迭代产生{Num_GoodKP}对关键点')
     return KeypointA, KeypointB, Aff_M
 
 
@@ -219,7 +219,7 @@ def LastGeometricConsistency(KeypointA, KeypointB):
     # 更新迭代所需的数据
     KeypointA = KeypointA[Index_GoodDD]
     KeypointB = KeypointB[Index_GoodDD]
-    print(f'在全局几何一致性约束中，匹配结果包含{KeypointA.shape[0]}个关键点，这是最终的匹配结果')
+    myLogger.print(f'在全局几何一致性约束中，匹配结果包含{KeypointA.shape[0]}个关键点，这是最终的匹配结果')
     return KeypointA, KeypointB
 
 def DivideRegion(Point):
@@ -298,7 +298,7 @@ def LocalMatching(PointA, PointB, TransMat, Similarity):
     W_LocalRegionSize = 0.02       # 使用一定比例的点数目近似局部区域的尺寸，局部区域近似为目标区域的10%大小
     Num_PointB = PointB.shape[0]   # 点数目
     Num_NearPoint = int(W_LocalRegionSize*Num_PointB)  # 在每个映射坐标周围找出Num个最近的关键点
-    print(f'在局部匹配中，设置局部区域尺寸权重为{W_LocalRegionSize}时，使得每个映射坐标所在的局部区域包含{Num_NearPoint}个关键点')
+    myLogger.print(f'在局部匹配中，设置局部区域尺寸权重为{W_LocalRegionSize}时，使得每个映射坐标所在的局部区域包含{Num_NearPoint}个关键点')
     #
     # 转变关键点的坐标【从关键点少的向关键点多的方向映射坐标】
     Point_Map = TransformPoint(PointA, TransMat)
@@ -317,7 +317,7 @@ def LocalMatching(PointA, PointB, TransMat, Similarity):
     Index_PointA, Index_PointB = RemoveRepetition(Index_PointB_Around, Similarity, np.arange(PointA.shape[0]))
     PointA_NoRep = PointA[Index_PointA]
     PointB_NoRep = PointB[Index_PointB]
-    print(f'局部粗匹配获得{Index_PointA.shape[0]}个成对的关键点,此时还未执行基于区域的几何一致性评估')
+    myLogger.print(f'局部粗匹配获得{Index_PointA.shape[0]}个成对的关键点,此时还未执行基于区域的几何一致性评估')
     # 查看将重后局部匹配的粗匹配结果
     # Draw.PointLine(PointA_NoRep, PointB_NoRep, SizeKps=10, LineWidth=1.5)
     # 区域内成对的关键点
@@ -333,7 +333,7 @@ def LocalMatching(PointA, PointB, TransMat, Similarity):
     MatchPointB = np.vstack((PointB_MR, PointB_UR, PointB_DR, PointB_LR, PointB_RR))
     MatchPointA, Index_NoRepKP = np.unique(MatchPointA, axis=0, return_index=True)
     MatchPointB = MatchPointB[Index_NoRepKP]
-    print(f'局部精匹配获得{Index_NoRepKP.shape[0]}个成对的关键点,这是执行基于区域的几何一致性评估后的结果')
+    myLogger.print(f'局部精匹配获得{Index_NoRepKP.shape[0]}个成对的关键点,这是执行基于区域的几何一致性评估后的结果')
     return MatchPointA, MatchPointB
 
 def DoLocalMatching(KeypointA, KeypointB, TransMat, Similarity):
@@ -359,6 +359,10 @@ def Matching(KeypointA, EncodeA, KeypointB, EncodeB):
     # 输出:
     # MatchResultA, MatchResultB: Numpy数据格式,匹配结果,行向一一对应
     #
+    from logger import Logger
+    global myLogger
+    myLogger = Logger("../result")
+    
     # 给KPA坐标编号
     Order_KeypointA = np.arange(KeypointA.shape[0])
     # 计算对应于KPA和KPB的EncodeA, EncodeB之间的全相似性强度矩阵【便于索引】
