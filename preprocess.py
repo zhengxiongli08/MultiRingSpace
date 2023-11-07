@@ -1,11 +1,12 @@
 # This program is used to remove background for monomer slides and polysome slides
-# 不去空洞，叠加到原图之上进行特征描述
 
 import openslide
 import rembg
 import numpy as np
 import cv2 as cv
+import numba
 from PIL import Image
+from numba import njit, prange
 
 
 def convert(img):
@@ -24,53 +25,66 @@ def convert(img):
     
     return img_new
 
-def read_slide(path, dimension=5):
+def read_slide(path, params):
     """
     Open slide using package "openslide"
     """
+    # Get some necessary parameters
+    DIM_LOWER_BOUND = params["dim_lower_bound"]
+    DIM_UPPER_BOUND = params["dim_upper_bound"]
+    RESIZE_HEIGHT = params["resize_height"]
+    # Open slide file
     slide = openslide.open_slide(path)
-    resolution = slide.level_dimensions[dimension]
+    # Since the slides have different dimensions, 
+    # we need to automatically detect appropriate dimensions
+    dims = slide.level_dimensions
+    flag = False
+    for dim in dims:
+        if (dim[0] > DIM_LOWER_BOUND) and (dim[0] < DIM_UPPER_BOUND):
+            resolution = dim
+            flag = True
+            break
+    if not flag:
+        raise Exception("Dimensions requiremens not satisfied.")
+
     img = slide.get_thumbnail(resolution)
     img = np.array(img)
     img = convert(img)
     # Resize the image. Height should be 1024
     height, width = img.shape[:2]
-    new_height = 1024
+    new_height = RESIZE_HEIGHT
     new_width = int((width / height) * new_height)
     result = cv.resize(img, (new_width, new_height))
-    result = result
     
     return result
 
-def monomer_preprocess(path):
+def monomer_preprocess(img_origin):
     """
     Read a monomer slide, and preprocess it.
     Including remove background and transform it into a gray scale image.
     """
-    img_origin = read_slide(path)
     temp = rembg.remove(img_origin)
     # After processing using rembg, there are 4 channels, we only need 3 (BGR)
     channels = cv.split(temp)
     img_nobg = cv.merge(channels[:3])
     img_nobg_gray = cv.cvtColor(temp, cv.COLOR_BGR2GRAY)
     
-    return img_origin, img_nobg, img_nobg_gray
+    return img_nobg, img_nobg_gray
 
-def polysome_preprocess(path):
+@njit(parallel=True)
+def bg_remove(img):
     """
-    Read a polysome slide, and preprocess it.
-    Including remove background and transform it into a gray scale image.
+    Remove background pixels based on the order of BGR values
+    Accelerated using numba
     """
-    img_origin = read_slide(path)
-    img_nobg = img_origin.copy()
+    img_nobg = img.copy()
     # Remove background
-    height = img_origin.shape[0]
-    width = img_origin.shape[1]
-    for i in range(0, height):
-        for j in range(0, width):
-            b = int(img_origin[i, j][0])
-            g = int(img_origin[i, j][1])
-            r = int(img_origin[i, j][2])
+    height, width = img.shape[:2]
+    for i in prange(0, height):
+        for j in prange(0, width):
+            b = int(img[i, j][0])
+            g = int(img[i, j][1])
+            r = int(img[i, j][2])
             yellow_flag = (r > g) and (g > b)
             blue_flag = (b > g) and (g > r)
             purple_flag = (b > g) and (r > g)
@@ -79,7 +93,18 @@ def polysome_preprocess(path):
                 pass
             else:
                 img_nobg[i, j] = [0, 0, 0]
+
+    return img_nobg
+
+def polysome_preprocess(img_origin):
+    """
+    Read a polysome slide, and preprocess it.
+    Including remove background and transform it into a gray scale image.
+    """
+    # Remove background
+    img_nobg = bg_remove(img_origin)
+    
     # Transform it into gray scale
     img_nobg_gray = cv.cvtColor(img_nobg, cv.COLOR_BGR2GRAY)
                 
-    return img_origin, img_nobg, img_nobg_gray
+    return img_nobg, img_nobg_gray

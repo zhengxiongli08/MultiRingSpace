@@ -10,7 +10,7 @@ import taichi as ti
 import cv2 as cv
 import pickle
 from logger import Logger
-from preprocess import monomer_preprocess, polysome_preprocess
+from preprocess import read_slide, monomer_preprocess, polysome_preprocess
 from conv import get_mask_list, get_conv_list, get_diff_list
 from keypoint import get_kps, get_color_keypoint_img
 from eigen import get_eigens
@@ -24,13 +24,15 @@ def get_params(params: dict):
     Receive parameters from terminal
     """
     parser = argparse.ArgumentParser(description="Indicate parameters, use --help for help.")
-    parser.add_argument("--group_path", type=str, default="../BiopsyDatabase/monomer/case6-group3", help="slide group's path")
+    parser.add_argument("--group_path", type=str, default="../BiopsyDatabase/monomer/case6-group4", help="slide group's path")
     parser.add_argument("--result_path", type=str, default="../result", help="result's folder")
     parser.add_argument("--slide_type", type=str, default="monomer", help="slide type, monomer/polysome")
     parser.add_argument("--radius_min", type=int, default=5, help="minimum radius of ring")
     parser.add_argument("--radius_max", type=int, default=30, help="maximum radius of ring")
     parser.add_argument("--thickness", type=int, default=7, help="thickness of the ring")
-    parser.add_argument("--weight", type=float, default=0.8, help="weight used for figure out good match")
+    parser.add_argument("--dim_lower_bound", type=int, default=2000, help="image's height lower bound")
+    parser.add_argument("--dim_upper_bound", type=int, default=8000, help="image's height upper bound")
+    parser.add_argument("--resize_height", type=int, default=1024, help="image's height after resize")
     # Put them into a dictionary
     args = parser.parse_args()
     params["group_path"] = args.group_path
@@ -39,12 +41,14 @@ def get_params(params: dict):
     params["radius_min"] = args.radius_min
     params["radius_max"] = args.radius_max
     params["thickness"] = args.thickness
-    params["weight"] = args.weight
+    params["dim_lower_bound"] = args.dim_lower_bound
+    params["dim_upper_bound"] = args.dim_upper_bound
+    params["resize_height"] = args.resize_height
     # Get the exact path of 2 slides
     group_path = params["group_path"]
     slide_list = list()
     for file in os.listdir(group_path):
-        if file.endswith(".mrxs"):
+        if file.endswith(".mrxs") or file.endswith(".svs"):
             slide_list.append(file)
     
     slide_1_path = os.path.join(group_path, slide_list[0])
@@ -73,11 +77,13 @@ def compute(params: dict, num: int, myLogger: Logger):
     # Begin compute keypoints and eigenvector
     myLogger.print(f"Start processing for slide {num}.")
     # Read image and preprocess it
+    img_origin = read_slide(path, params)
     if (slide_type == "monomer"):
-        img_origin, img_nobg, img_nobg_gray = monomer_preprocess(path)
+        img_nobg, img_nobg_gray = monomer_preprocess(img_origin)
     elif (slide_type == "polysome"):
-        img_origin, img_nobg, img_nobg_gray = polysome_preprocess(path)
+        img_nobg, img_nobg_gray = polysome_preprocess(img_origin)
     myLogger.print("Preprocess completed successfully!")
+    myLogger.print(f"Image's size: {img_nobg_gray.shape}")
             
     # Get list of convolution kernels
     mask_list = get_mask_list(radius_min, radius_max, thickness)
