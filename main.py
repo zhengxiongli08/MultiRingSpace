@@ -1,21 +1,20 @@
 
 # Author: Zhengxiong Li
-# Email: zhengxiong_li@foxmail.com
 
-# Multiple scale ring space
+# Multiple scale ring space algorithm
 
 import argparse
 import os
 import taichi as ti
 import cv2 as cv
 import pickle
+import numpy as np
 from logger import Logger
 from preprocess import read_slide, monomer_preprocess, polysome_preprocess
 from conv import get_mask_list, get_conv_list, get_diff_list
 from keypoint import get_kps, get_color_keypoint_img
 from eigen import get_eigens
 from match import Matching
-from draw import draw_line, img_rotate
 
 
 # Functions
@@ -101,7 +100,7 @@ def compute(params: dict, num: int, myLogger: Logger):
     kps = get_kps(diff_list)
     myLogger.print("Get keypoints successfully!")
     
-    # Get eigenvector
+    # Get eigenvectors
     eigens = get_eigens(img_nobg_gray, kps, mask_list)
     myLogger.print("Get eigen vectors successfully!")
     
@@ -116,7 +115,6 @@ def compute(params: dict, num: int, myLogger: Logger):
     cv.imwrite(img_origin_path, img_origin)
     cv.imwrite(img_nobg_path, img_nobg)
     cv.imwrite(img_nobg_gray_path, img_nobg_gray)
-    params[f"img_nobg_{num}"] = img_nobg
     # Save convolution images
     for i in range(0, len(conv_list)):
         conv_img_path = os.path.join(slide_result_path, f"img_conv_{i}.png")
@@ -136,13 +134,14 @@ def compute(params: dict, num: int, myLogger: Logger):
 
 def main():
     """
-    Match 2 slides using multiple ring space algorithm
+    Match 2 slides using multiple scale ring space algorithm
     """
     # Read parameters from terminal
     params = {}
     get_params(params)
     # Record dict's information
     result_path = params["result_path"]
+    os.makedirs(result_path, exist_ok=True)
     myLogger = Logger(result_path)
     myLogger.print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     myLogger.print(f"Start image registration using Multiple Ring Space algorithm.")
@@ -157,21 +156,16 @@ def main():
     kps_2, eigens_2 = compute(params, 2, myLogger)
     
     # Match them
-    match_list_1, match_list_2 = Matching(kps_1, eigens_1, kps_2, eigens_2)
+    match_kps_1, match_kps_2 = Matching(kps_1, eigens_1, kps_2, eigens_2)
     
-    # Draw lines to connect responding keypoints
-    result_path = params["result_path"]
-    img_match_path = os.path.join(result_path, "img_match.png")
-    img_nobg_1 = params["img_nobg_1"]
-    img_nobg_2 = params["img_nobg_2"]
-    match_img = draw_line(img_nobg_1, img_nobg_2, match_list_1, match_list_2)
-    cv.imwrite(img_match_path, match_img)
-    myLogger.print("Image with matched lines saved.")
-    # Rotate for image 2 and save it
-    img_rotate_combo = img_rotate(img_nobg_1, img_nobg_2, kps_1, kps_2)
-    img_rotate_path = os.path.join(result_path, "rotate_combo.png")
-    cv.imwrite(img_rotate_path, img_rotate_combo)
-    myLogger.print("Image rotated combo saved.")
+    # Save data for evaluation
+    eva_data_path = os.path.join(result_path, "eva_data")
+    os.mkdir(eva_data_path)
+    # Save match keypoints
+    match_kps_1_path = os.path.join(eva_data_path, "match_kps_1.npy")
+    match_kps_2_path = os.path.join(eva_data_path, "match_kps_2.npy")
+    np.save(match_kps_1_path, match_kps_1)
+    np.save(match_kps_2_path, match_kps_2)
 
     myLogger.print(f"Process complete. Check your results in {result_path}.")
     
