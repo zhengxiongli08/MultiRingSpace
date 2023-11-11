@@ -17,8 +17,10 @@ from eigen import get_eigens
 from match import Matching
 
 
+PARAMS = dict()
+
 # Functions
-def get_params(params: dict):
+def get_params():
     """
     Receive parameters from terminal
     """
@@ -34,17 +36,17 @@ def get_params(params: dict):
     parser.add_argument("--resize_height", type=int, default=1024, help="image's height after resize")
     # Put them into a dictionary
     args = parser.parse_args()
-    params["group_path"] = args.group_path
-    params["result_path"] = args.result_path
-    params["slide_type"] = args.slide_type
-    params["radius_min"] = args.radius_min
-    params["radius_max"] = args.radius_max
-    params["thickness"] = args.thickness
-    params["dim_lower_bound"] = args.dim_lower_bound
-    params["dim_upper_bound"] = args.dim_upper_bound
-    params["resize_height"] = args.resize_height
+    PARAMS["group_path"] = args.group_path
+    PARAMS["result_path"] = args.result_path
+    PARAMS["slide_type"] = args.slide_type
+    PARAMS["radius_min"] = args.radius_min
+    PARAMS["radius_max"] = args.radius_max
+    PARAMS["thickness"] = args.thickness
+    PARAMS["dim_lower_bound"] = args.dim_lower_bound
+    PARAMS["dim_upper_bound"] = args.dim_upper_bound
+    PARAMS["resize_height"] = args.resize_height
     # Get the exact path of 2 slides
-    group_path = params["group_path"]
+    group_path = PARAMS["group_path"]
     slide_list = list()
     for file in os.listdir(group_path):
         if file.endswith(".mrxs") or file.endswith(".svs"):
@@ -52,31 +54,31 @@ def get_params(params: dict):
     
     slide_1_path = os.path.join(group_path, slide_list[0])
     slide_2_path = os.path.join(group_path, slide_list[1])
-    params["slide_1_path"] = slide_1_path
-    params["slide_2_path"] = slide_2_path
+    PARAMS["slide_1_path"] = slide_1_path
+    PARAMS["slide_2_path"] = slide_2_path
     
     return
     
-def compute(params: dict, num: int, myLogger: Logger):
+def compute(num: int, myLogger: Logger):
     """
     Get keypoints and eigenvector
     """
     # Get necessary information
     if (num == 1):
-        path = params["slide_1_path"]
+        path = PARAMS["slide_1_path"]
     elif (num == 2):
-        path = params["slide_2_path"]
+        path = PARAMS["slide_2_path"]
         
-    result_path = params["result_path"]
-    slide_type = params["slide_type"]
-    radius_min = params["radius_min"]
-    radius_max = params["radius_max"]
-    thickness = params["thickness"]
+    result_path = PARAMS["result_path"]
+    slide_type = PARAMS["slide_type"]
+    radius_min = PARAMS["radius_min"]
+    radius_max = PARAMS["radius_max"]
+    thickness = PARAMS["thickness"]
     
     # Begin compute keypoints and eigenvector
     myLogger.print(f"Start processing for slide {num}.")
     # Read image and preprocess it
-    img_origin = read_slide(path, params)
+    img_origin = read_slide(path, PARAMS)
     if (slide_type == "monomer"):
         img_nobg, img_nobg_gray = monomer_preprocess(img_origin)
     elif (slide_type == "polysome"):
@@ -137,23 +139,22 @@ def main():
     Match 2 slides using multiple scale ring space algorithm
     """
     # Read parameters from terminal
-    params = {}
-    get_params(params)
+    get_params()
     # Record dict's information
-    result_path = params["result_path"]
+    result_path = PARAMS["result_path"]
     os.makedirs(result_path, exist_ok=True)
     myLogger = Logger(result_path)
     myLogger.print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     myLogger.print(f"Start image registration using Multiple Ring Space algorithm.")
     myLogger.print("{:<20} {}".format("Parameter", "Value"))
-    for i in params:
-        myLogger.print("{:<20} {}".format(i, params[i]))
+    for i in PARAMS:
+        myLogger.print("{:<20} {}".format(i, PARAMS[i]))
     myLogger.print()
     
     # Start processing
     # Process for slide 1 & 2
-    kps_1, eigens_1 = compute(params, 1, myLogger)
-    kps_2, eigens_2 = compute(params, 2, myLogger)
+    kps_1, eigens_1 = compute(1, myLogger)
+    kps_2, eigens_2 = compute(2, myLogger)
     
     # Match them
     match_kps_1, match_kps_2 = Matching(kps_1, eigens_1, kps_2, eigens_2)
@@ -166,6 +167,10 @@ def main():
     match_kps_2_path = os.path.join(eva_data_path, "match_kps_2.npy")
     np.save(match_kps_1_path, match_kps_1)
     np.save(match_kps_2_path, match_kps_2)
+    # Save parameters dictionary
+    dict_path = os.path.join(eva_data_path, "params.pkl")
+    with open(dict_path, "wb") as dict_file:
+        pickle.dump(PARAMS, dict_file)
 
     myLogger.print(f"Process complete. Check your results in {result_path}.")
     
