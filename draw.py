@@ -15,6 +15,7 @@ def draw_line(img_1, img_2, kps_1, kps_2):
     Draw lines between corresponding keypoints
     Order of coordinates is (coor_h, coor_w)
     But the order of cv.line is (coor_w, coor_h)
+    Both images should have the same height
     """
     # Line's color
     # GREEN = (0, 255, 0)
@@ -129,13 +130,5 @@ def draw_line(img_1, img_2, kps_1, kps_2):
 #     return combo
 
 if __name__ == "__main__":
-    img_1 = cv.imread("./temp/img_nobg_1.png")
-    img_2 = cv.imread("./temp/img_nobg_2.png")
-    with open("./temp/result_a.pkl", "rb") as file:
-        kps_1 = pickle.load(file)
-    with open("./temp/result_b.pkl", "rb") as file:
-        kps_2 = pickle.load(file)
     
-    # img = cv.imread("./temp/result.png")
-    rotated_img = img_rotate(img_1, img_2, kps_1, kps_2)
-    cv.imwrite("./temp/img_2_rotated.png", rotated_img)
+    pass

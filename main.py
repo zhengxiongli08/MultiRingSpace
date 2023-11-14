@@ -25,6 +25,7 @@ def get_params():
     Receive parameters from terminal
     """
     parser = argparse.ArgumentParser(description="Indicate parameters, use --help for help.")
+    parser.add_argument("--groups_path", type=str, default="../BiopsyDatabase", help="slide groups' path")
     parser.add_argument("--group_path", type=str, default="../BiopsyDatabase/monomer/case6-group4", help="slide group's path")
     parser.add_argument("--result_path", type=str, default="../result", help="result's folder")
     parser.add_argument("--slide_type", type=str, default="monomer", help="slide type, monomer/polysome")
@@ -36,7 +37,10 @@ def get_params():
     parser.add_argument("--resize_height", type=int, default=1024, help="image's height after resize")
     # Put them into a dictionary
     args = parser.parse_args()
-    PARAMS["group_path"] = args.group_path
+    # PARAMS["groups_path"] = args.groups_path
+    # PARAMS["group_path"] = args.group_path
+    PARAMS["groups_path"] = "../BiopsyDatabase/WSI_100Cases"
+    PARAMS["group_path"] = "../BiopsyDatabase/WSI_100Cases/TM-2-40magnification-group3"
     PARAMS["result_path"] = args.result_path
     PARAMS["slide_type"] = args.slide_type
     PARAMS["radius_min"] = args.radius_min
@@ -47,13 +51,13 @@ def get_params():
     PARAMS["resize_height"] = args.resize_height
     # Get the exact path of 2 slides
     group_path = PARAMS["group_path"]
-    slide_list = list()
+    slides_list = list()
     for file in os.listdir(group_path):
         if file.endswith(".mrxs") or file.endswith(".svs"):
-            slide_list.append(file)
+            slides_list.append(file)
     
-    slide_1_path = os.path.join(group_path, slide_list[0])
-    slide_2_path = os.path.join(group_path, slide_list[1])
+    slide_1_path = os.path.join(group_path, slides_list[0])
+    slide_2_path = os.path.join(group_path, slides_list[1])
     PARAMS["slide_1_path"] = slide_1_path
     PARAMS["slide_2_path"] = slide_2_path
     
@@ -161,16 +165,16 @@ def main():
     
     # Save data for evaluation
     eva_data_path = os.path.join(result_path, "eva_data")
-    os.mkdir(eva_data_path)
+    os.makedirs(eva_data_path, exist_ok=True)
     # Save match keypoints
     match_kps_1_path = os.path.join(eva_data_path, "match_kps_1.npy")
     match_kps_2_path = os.path.join(eva_data_path, "match_kps_2.npy")
     np.save(match_kps_1_path, match_kps_1)
     np.save(match_kps_2_path, match_kps_2)
     # Save parameters dictionary
-    dict_path = os.path.join(eva_data_path, "params.pkl")
-    with open(dict_path, "wb") as dict_file:
-        pickle.dump(PARAMS, dict_file)
+    params_path = os.path.join(eva_data_path, "params.pkl")
+    with open(params_path, "wb") as params_file:
+        pickle.dump(PARAMS, params_file)
 
     myLogger.print(f"Process complete. Check your results in {result_path}.")
     
