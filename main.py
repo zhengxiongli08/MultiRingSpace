@@ -103,10 +103,12 @@ def compute(num: int, myLogger: Logger):
     # Get keypoints
     kps = get_kps(diff_list)
     myLogger.print("Get keypoints successfully!")
+    myLogger.print(f"Total keypoints number for slide {num}: {kps.shape[0]}")
     
     # Get eigenvectors
     eigens = get_eigens(img_origin_gray, kps, mask_list)
     myLogger.print("Get eigen vectors successfully!")
+    myLogger.print(f"Eigen vectors' shape for slide {num}: {eigens.shape}")
     
     # Save results
     slide_result_path = os.path.join(result_path, f"slide-{num}")
@@ -131,7 +133,6 @@ def compute(num: int, myLogger: Logger):
         temp = cv.applyColorMap(diff_list[i], cv.COLORMAP_WINTER)
         cv.imwrite(diff_img_path, temp)
     # Save keypoints map
-    myLogger.print(f"Total keypoints number for slide {num}: {kps.shape[0]}")
     img_color = get_color_keypoint_img(img_nobg, kps)
     kp_color_path = os.path.join(slide_result_path, f"img_kp_color.png")
     cv.imwrite(kp_color_path, img_color)

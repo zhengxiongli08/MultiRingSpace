@@ -15,7 +15,7 @@ from numba import njit, prange
 def loc_conv(src: ti.types.ndarray(), 
              mask: ti.types.ndarray(), 
              coor_h: ti.i32, 
-             coor_w: ti.i32) -> ti.float32:
+             coor_w: ti.i32) -> ti.f32:
     """
     Function:
         Do convolution in designated position
