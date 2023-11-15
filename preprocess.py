@@ -63,13 +63,15 @@ def monomer_preprocess(img_origin):
     Read a monomer slide, and preprocess it.
     Including remove background and transform it into a gray scale image.
     """
+    # Get gray scale for image_origin
+    img_origin_gray = cv.cvtColor(img_origin, cv.COLOR_BGR2GRAY)
     temp = rembg.remove(img_origin)
     # After processing using rembg, there are 4 channels, we only need 3 (BGR)
     channels = cv.split(temp)
     img_nobg = cv.merge(channels[:3])
     img_nobg_gray = cv.cvtColor(temp, cv.COLOR_BGR2GRAY)
     
-    return img_nobg, img_nobg_gray
+    return img_origin_gray, img_nobg, img_nobg_gray
 
 @njit(parallel=True)
 def bg_remove(img):
@@ -101,10 +103,13 @@ def polysome_preprocess(img_origin):
     Read a polysome slide, and preprocess it.
     Including remove background and transform it into a gray scale image.
     """
+    # Get gray scale for image_origin
+    img_origin_gray = cv.cvtColor(img_origin, cv.COLOR_BGR2GRAY)
+    
     # Remove background
     img_nobg = bg_remove(img_origin)
     
     # Transform it into gray scale
     img_nobg_gray = cv.cvtColor(img_nobg, cv.COLOR_BGR2GRAY)
                 
-    return img_nobg, img_nobg_gray
+    return img_origin_gray, img_nobg, img_nobg_gray

@@ -82,9 +82,9 @@ def compute(num: int, myLogger: Logger):
     # Read image and preprocess it
     img_origin = read_slide(path, PARAMS)
     if (slide_type == "monomer"):
-        img_nobg, img_nobg_gray = monomer_preprocess(img_origin)
+        img_origin_gray, img_nobg, img_nobg_gray = monomer_preprocess(img_origin)
     elif (slide_type == "polysome"):
-        img_nobg, img_nobg_gray = polysome_preprocess(img_origin)
+        img_origin_gray, img_nobg, img_nobg_gray = polysome_preprocess(img_origin)
     myLogger.print("Preprocess completed successfully!")
     myLogger.print(f"Image's size: {img_nobg_gray.shape}")
             
@@ -105,7 +105,7 @@ def compute(num: int, myLogger: Logger):
     myLogger.print("Get keypoints successfully!")
     
     # Get eigenvectors
-    eigens = get_eigens(img_nobg_gray, kps, mask_list)
+    eigens = get_eigens(img_origin_gray, kps, mask_list)
     myLogger.print("Get eigen vectors successfully!")
     
     # Save results
@@ -114,9 +114,11 @@ def compute(num: int, myLogger: Logger):
         os.mkdir(slide_result_path)
     # Save original, no background, nobg & gray scale image
     img_origin_path = os.path.join(slide_result_path, "img_origin.png")
+    img_origin_gray_path = os.path.join(slide_result_path, "img_origin_gray.png")
     img_nobg_path = os.path.join(slide_result_path, "img_nobg.png")
     img_nobg_gray_path = os.path.join(slide_result_path, "img_nobg_gray.png")
     cv.imwrite(img_origin_path, img_origin)
+    cv.imwrite(img_origin_gray_path, img_origin_gray)
     cv.imwrite(img_nobg_path, img_nobg)
     cv.imwrite(img_nobg_gray_path, img_nobg_gray)
     # Save convolution images

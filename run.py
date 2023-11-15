@@ -93,7 +93,7 @@ def single_run():
             --result_path={RESULT_PATH}")
     # Evaluate results
     mean_error = evaluate(RESULT_PATH)
-    print(f"Mean error: {mean_error} pixels.")
+    print(f"Mean error: {mean_error:.3f} pixels.")
     
     return
     

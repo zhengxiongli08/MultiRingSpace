@@ -10,26 +10,25 @@ from conv import loc_conv
 
 
 # Functions
-@ti.kernel
-def _get_conv_eigen(img: ti.types.ndarray(), 
-                   kps: ti.types.ndarray(), 
-                   mask: ti.types.ndarray(), 
-                   result: ti.types.ndarray()):
+def get_conv_eigen(img, kps, mask):
     """
+    Warp for _get_conv_eigen.
     Get convolution values for all keypoints using a single kernel
     'result' is a numpy array whose length is keypoints' number
     """
-    kps_length = kps.shape[0]
-    for i in range(0, kps_length):
-        coor_h, coor_w = kps[i, 0], kps[i, 1]
-        result[i] = loc_conv(img, mask, coor_h, coor_w)
-    
-    return
-
-def get_conv_eigen(img, kps, mask):
-    """
-    Warp for _get_conv_eigen
-    """
+    @ti.kernel
+    def _get_conv_eigen(img: ti.types.ndarray(), 
+                    kps: ti.types.ndarray(), 
+                    mask: ti.types.ndarray(), 
+                    result: ti.types.ndarray()):
+        
+        kps_length = kps.shape[0]
+        for i in range(0, kps_length):
+            coor_h, coor_w = kps[i, 0], kps[i, 1]
+            result[i] = loc_conv(img, mask, coor_h, coor_w)
+        
+        return
+    # Main part
     kps_length = kps.shape[0]
     result = np.zeros(kps_length)
     _get_conv_eigen(img, kps, mask, result)
@@ -84,16 +83,11 @@ def get_eigens(img, kps, mask_list):
     
 if __name__ == "__main__":
     ti.init(arch=ti.cpu)
-    with open("./temp/diff_list.pkl", "rb") as file:
-        diff_list = pickle.load(file)
-    with open("./temp/img_nobg_gray.pkl", "rb") as file:
-        img_nobg_gray = pickle.load(file)
-    with open("./temp/kp_list.pkl", "rb") as file:
-        kps = pickle.load(file)
-    with open("./temp/mask_list.pkl", "rb") as file:
-        mask_list = pickle.load(file)
+    
+    with open("./temp/eigen_var1.pkl", "rb") as file:
+        img_origin_gray, kps, mask_list = pickle.load(file)
 
-    eigens = get_eigens(img_nobg_gray, kps, mask_list)
+    eigens = get_eigens(img_origin_gray, kps, mask_list)
     print(eigens.shape)
 
     pass
