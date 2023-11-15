@@ -43,14 +43,13 @@ def main():
     # Do it for gold case dataset without evaluation
     group_names = natsorted(os.listdir(GOLDCASE_PATH))
     for group_name in group_names:
-        group_path = os.path.join(GOLDCASE_PATH, group_name)
         # Remove the result folder and create a new one
         if os.path.exists(RESULT_PATH):
             shutil.rmtree(RESULT_PATH)
         os.mkdir(RESULT_PATH)
         my_run(f"python main.py \
                 --groups_path={GOLDCASE_PATH} \
-                --group_path={group_path} \
+                --group_name={group_name} \
                 --result_path={RESULT_PATH} \
                 --slide_type=monomer")
         # Get path for case's result
@@ -77,8 +76,30 @@ def main():
     print(result_str)
     
     return
+
+def single_run():
+    """
+    Run a single case
+    """
+    # Remove the result folder and create a new one
+    if os.path.exists(RESULT_PATH):
+        shutil.rmtree(RESULT_PATH)
+    os.mkdir(RESULT_PATH)
+    # Run registration
+    group_name = "TM-2-40magnification-group3"
+    my_run(f"python main.py \
+            --groups_path={GOLDCASE_PATH} \
+            --group_name={group_name} \
+            --result_path={RESULT_PATH}")
+    # Evaluate results
+    mean_error = evaluate(RESULT_PATH)
+    print(f"Mean error: {mean_error} pixels.")
+    
+    return
     
 if __name__ == "__main__":
-    main()
+    # main()
+    
+    single_run()
     
     print("Program finished!")

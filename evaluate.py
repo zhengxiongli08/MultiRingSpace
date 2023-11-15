@@ -99,7 +99,7 @@ def get_paths(params):
     Get paths for slide-1's json files
     slide-2's json files
     """
-    group_path = params["group_path"]
+    group_path = os.path.join(params["groups_path"], params["group_name"])
     slide_1_path = params["slide_1_path"]
     slide_2_path = params["slide_2_path"]
     slide_1_name = os.path.basename(slide_1_path)

@@ -26,7 +26,7 @@ def get_params():
     """
     parser = argparse.ArgumentParser(description="Indicate parameters, use --help for help.")
     parser.add_argument("--groups_path", type=str, default="../BiopsyDatabase", help="slide groups' path")
-    parser.add_argument("--group_path", type=str, default="../BiopsyDatabase/monomer/case6-group4", help="slide group's path")
+    parser.add_argument("--group_name", type=str, default="case6-group4", help="group's path")
     parser.add_argument("--result_path", type=str, default="../result", help="result's folder")
     parser.add_argument("--slide_type", type=str, default="monomer", help="slide type, monomer/polysome")
     parser.add_argument("--radius_min", type=int, default=5, help="minimum radius of ring")
@@ -37,10 +37,8 @@ def get_params():
     parser.add_argument("--resize_height", type=int, default=1024, help="image's height after resize")
     # Put them into a dictionary
     args = parser.parse_args()
-    # PARAMS["groups_path"] = args.groups_path
-    # PARAMS["group_path"] = args.group_path
-    PARAMS["groups_path"] = "../BiopsyDatabase/WSI_100Cases"
-    PARAMS["group_path"] = "../BiopsyDatabase/WSI_100Cases/TM-2-40magnification-group3"
+    PARAMS["groups_path"] = args.groups_path
+    PARAMS["group_name"] = args.group_name
     PARAMS["result_path"] = args.result_path
     PARAMS["slide_type"] = args.slide_type
     PARAMS["radius_min"] = args.radius_min
@@ -50,7 +48,7 @@ def get_params():
     PARAMS["dim_upper_bound"] = args.dim_upper_bound
     PARAMS["resize_height"] = args.resize_height
     # Get the exact path of 2 slides
-    group_path = PARAMS["group_path"]
+    group_path = os.path.join(PARAMS["groups_path"], PARAMS["group_name"])
     slides_list = list()
     for file in os.listdir(group_path):
         if file.endswith(".mrxs") or file.endswith(".svs"):
