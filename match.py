@@ -12,17 +12,39 @@ import faiss
 import heapq
 import cv2
 import time
+import taichi as ti
 
 
-def Euclidean(MatrixA, MatrixB):
-    # 输入：
-    # MatrixA, MatrixB: Numpy数据类型,=MatrixB的行数，其行=MatrixA的行数
-    # 输出:
-    # Distance行对应A图上的坐标顺序，列对应B图上的坐标顺序，注意【输出的是距离的平方】
-    #
-    MatrixB = MatrixB.T
-    Distance = np.dot(MatrixA ** 2, np.ones(MatrixB.shape)) + np.dot(np.ones(MatrixA.shape), MatrixB ** 2) - 2 * np.dot(MatrixA, MatrixB)
-    return np.float32(Distance)
+# Functions
+def get_euclidean_mat(eigens_1, eigens_2):
+    """
+    Calculate the euclidean distance between two rows
+    Result's coordinate in height direction represents rows of eigens_1
+    coordinate in width direction represents rows of eigens_2
+    """
+    ti.init(arch=ti.cpu)
+    @ti.kernel
+    def _euclidean(eigens_1: ti.types.ndarray(), 
+                   eigens_2: ti.types.ndarray(),
+                   result: ti.types.ndarray()):
+        for i, j in ti.ndrange((0, eigens_1.shape[0]), (0, eigens_2.shape[0])):
+            sum_value = ti.cast(0, ti.float32)
+            for index in range(0, eigens_1.shape[1]):
+                temp = eigens_1[i, index] - eigens_2[j, index]
+                temp = ti.pow(temp, 2)
+                sum_value += temp
+            result[i, j] = sum_value
+        
+        return
+    # Declare space for results
+    kps_1_len = eigens_1.shape[0]
+    kps_2_len = eigens_2.shape[0]
+    eigens_1 = eigens_1.astype(np.float32)
+    eigens_2 = eigens_2.astype(np.float32)
+    result = np.zeros((kps_1_len, kps_2_len), dtype=np.float32)
+    _euclidean(eigens_1, eigens_2, result)
+
+    return result
 
 def RemoveRepetition(Index_Similar, Similarity, Order_Keypoint):
     """
@@ -366,7 +388,7 @@ def Matching(KeypointA, EncodeA, KeypointB, EncodeB):
     # 给KPA坐标编号
     Order_KeypointA = np.arange(KeypointA.shape[0])
     # 计算对应于KPA和KPB的EncodeA, EncodeB之间的全相似性强度矩阵【便于索引】
-    Similarity = Euclidean(EncodeA, EncodeB)
+    Similarity = get_euclidean_mat(EncodeA, EncodeB)
     # 基于相似性，索引出与KPA粗匹配的KPB
     Index_Similar = np.argmin(Similarity, axis=1)
     # 降重
@@ -385,40 +407,3 @@ def Matching(KeypointA, EncodeA, KeypointB, EncodeB):
     # draw_bk.PointLine(MatchResultA, MatchResultB, SizeKps=10, LineWidth=1.5, path="final.png")
     #
     return MatchResultA, MatchResultB
-
-#
-#
-#
-if __name__ == "__main__":
-    import scipy.io
-    KeypointA = scipy.io.loadmat('KPSA.mat')['KPSA']  # 读取的数据
-    KeypointB = scipy.io.loadmat('KPSB.mat')['KPSB']
-    EncoderA = scipy.io.loadmat('EncoderA.mat')['EncoderA']
-    EncoderB = scipy.io.loadmat('EncoderB.mat')['EncoderB']
-    print(type(KeypointA))
-    print(type(EncoderA))
-    print(KeypointA.shape)
-    print(EncoderA.shape)
-    MatchResultA, MatchResultB = Matching(KeypointA, EncoderA, KeypointB, EncoderB)
-
-
-
-
-"""
-# 语法：
-1、
-
-参数：
-输出：
-"""
-# .............................................................................#
-"""
-# 小知识：
-1、
-
-"""
-# .............................................................................#
-"""
-# 实施例：
-
-"""
