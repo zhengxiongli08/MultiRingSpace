@@ -30,6 +30,7 @@ def loc_conv(src: ti.types.ndarray(),
     result = 0.0
     radius = int((mask.shape[0] - 1) / 2)
     size = mask.shape[0]
+    ti.loop_config(serialize=True)
     for k, l in ti.ndrange((0, size), (0, size)):
         img_value = src[coor_h-radius+k, coor_w-radius+l]
         mask_value = mask[k, l]

@@ -6,10 +6,36 @@ import numba
 import numpy as np
 import pickle
 from numba import njit, prange
-from conv import loc_conv
+# from conv import loc_conv
 
 
 # Functions
+@ti.func
+def loc_conv(src: ti.types.ndarray(), 
+             mask: ti.types.ndarray(), 
+             coor_h: ti.i32, 
+             coor_w: ti.i32) -> ti.f64:
+    """
+    Function:
+        Do convolution in designated position
+    Args:
+        src: source matrix
+        mask: convolution kernel
+        i: convolution coordinates in height direction
+        j: convolution coordinates in width direction
+    Return:
+        Convolution result
+    """
+    result = 0.0
+    radius = int((mask.shape[0] - 1) / 2)
+    size = mask.shape[0]
+    for k, l in ti.ndrange((0, size), (0, size)):
+        img_value = src[coor_h-radius+k, coor_w-radius+l]
+        mask_value = mask[k, l]
+        result += img_value * mask_value
+        
+    return result
+
 def get_conv_eigen(img, kps, mask):
     """
     Warp for _get_conv_eigen.
@@ -32,7 +58,7 @@ def get_conv_eigen(img, kps, mask):
     kps_length = kps.shape[0]
     result = np.zeros(kps_length)
     _get_conv_eigen(img, kps, mask, result)
-    
+
     return result
 
 def zscore_scale(mat_data):
@@ -69,6 +95,7 @@ def get_conv_eigens(img, kps, mask_list):
     for mask in mask_list:
         temp = get_conv_eigen(img, kps, mask)
         conv_pre.append(temp)
+        print(np.mean(temp))
     # np.vstack has a row number of mask_list's length
     # so, transpose it
     temp = np.vstack(conv_pre).T
@@ -117,17 +144,19 @@ def get_eigens(img, kps, mask_list):
     """
     # Part 1, keypoints' energy
     conv_eigens = get_conv_eigens(img, kps, mask_list)
+    
     # Part 2, keypoints' energy difference
     diff_eigens = get_diff_eigens(conv_eigens)
     
     eigens = (conv_eigens, diff_eigens)
     eigens = np.concatenate(eigens, axis=1)
     
+    eigens = zscore_scale(eigens)
+    
     return eigens
     
 if __name__ == "__main__":
     ti.init(arch=ti.cpu)
-    np.random.seed(42)
     
     with open("./temp/eigen_var1.pkl", "rb") as file:
         img_origin_gray, kps, mask_list = pickle.load(file)

@@ -113,3 +113,7 @@ def polysome_preprocess(img_origin):
     img_nobg_gray = cv.cvtColor(img_nobg, cv.COLOR_BGR2GRAY)
                 
     return img_origin_gray, img_nobg, img_nobg_gray
+
+if __name__ == "__main__":
+    print("Program finished.")
+    

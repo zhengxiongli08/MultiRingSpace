@@ -86,7 +86,7 @@ def single_run():
         shutil.rmtree(RESULT_PATH)
     os.mkdir(RESULT_PATH)
     # Run registration
-    group_name = "TM-2-40magnification-group3"
+    group_name = "BC-1-group1"
     my_run(f"python main.py \
             --groups_path={GOLDCASE_PATH} \
             --group_name={group_name} \
