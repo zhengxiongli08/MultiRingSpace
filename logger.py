@@ -3,8 +3,8 @@ import sys
 import os
 
 class Logger():
-    def __init__(self, result_path="./result"):
-        log_path = os.path.join(result_path, "result.log")
+    def __init__(self, result_path="./result", log_name="result.log"):
+        log_path = os.path.join(result_path, log_name)
         self.terminal = sys.stdout
         self.log = open(log_path, "a", buffering=64, encoding="utf-8")
         

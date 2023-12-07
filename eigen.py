@@ -95,7 +95,6 @@ def get_conv_eigens(img, kps, mask_list):
     for mask in mask_list:
         temp = get_conv_eigen(img, kps, mask)
         conv_pre.append(temp)
-        print(np.mean(temp))
     # np.vstack has a row number of mask_list's length
     # so, transpose it
     temp = np.vstack(conv_pre).T

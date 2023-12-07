@@ -1,9 +1,4 @@
-"""-*- 老婆最美 -*-"""
-# @Project : Paper3  
-# @File : Match.py 
-# @Time : 2023/10/22 8:01 
-# @Author : WaiL 
-# @Software: PyCharm
+
 """
 功能：特征匹配算法。【粗匹配->几何一致性匹配->局部匹配->精匹配】
 """
