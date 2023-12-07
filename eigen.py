@@ -1,38 +1,27 @@
 
 # This program is used to get the eigen vectors for keypoints
 
-import taichi as ti
 import numba
 import numpy as np
 import pickle
 from numba import njit, prange
 from conv import local_conv
-# from conv import loc_conv
 
 
 # Functions
 def get_conv_eigen(img, kps, mask):
     """
-    Warp for _get_conv_eigen.
     Get convolution values for all keypoints using a single kernel
     'result' is a numpy array whose length is keypoints' number
     """
-    @ti.kernel
-    def _get_conv_eigen(img: ti.types.ndarray(), 
-                        kps: ti.types.ndarray(), 
-                        mask: ti.types.ndarray(), 
-                        result: ti.types.ndarray()):
-        
-        kps_length = kps.shape[0]
-        for i in range(0, kps_length):
-            coor_h, coor_w = kps[i, 0], kps[i, 1]
-            result[i] = local_conv(img, mask, coor_h, coor_w)
-        
-        return
     # Main part
     kps_length = kps.shape[0]
     result = np.zeros(kps_length)
-    _get_conv_eigen(img, kps, mask, result)
+    # _get_conv_eigen(img, kps, mask, result)
+    kps_length = kps.shape[0]
+    for i in range(0, kps_length):
+        coor_h, coor_w = kps[i, 0], kps[i, 1]
+        result[i] = local_conv(img, mask, coor_h, coor_w)
 
     return result
 
@@ -129,9 +118,7 @@ def get_eigens(img, kps, mask_list):
     
     return eigens
     
-if __name__ == "__main__":
-    ti.init(arch=ti.cpu)
-    
+if __name__ == "__main__":    
     with open("./temp/eigen_var1.pkl", "rb") as file:
         img_origin_gray, kps, mask_list = pickle.load(file)
 
