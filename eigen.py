@@ -6,36 +6,11 @@ import numba
 import numpy as np
 import pickle
 from numba import njit, prange
+from conv import local_conv
 # from conv import loc_conv
 
 
 # Functions
-@ti.func
-def loc_conv(src: ti.types.ndarray(), 
-             mask: ti.types.ndarray(), 
-             coor_h: ti.i32, 
-             coor_w: ti.i32) -> ti.f64:
-    """
-    Function:
-        Do convolution in designated position
-    Args:
-        src: source matrix
-        mask: convolution kernel
-        i: convolution coordinates in height direction
-        j: convolution coordinates in width direction
-    Return:
-        Convolution result
-    """
-    result = 0.0
-    radius = int((mask.shape[0] - 1) / 2)
-    size = mask.shape[0]
-    for k, l in ti.ndrange((0, size), (0, size)):
-        img_value = src[coor_h-radius+k, coor_w-radius+l]
-        mask_value = mask[k, l]
-        result += img_value * mask_value
-        
-    return result
-
 def get_conv_eigen(img, kps, mask):
     """
     Warp for _get_conv_eigen.
@@ -51,7 +26,7 @@ def get_conv_eigen(img, kps, mask):
         kps_length = kps.shape[0]
         for i in range(0, kps_length):
             coor_h, coor_w = kps[i, 0], kps[i, 1]
-            result[i] = loc_conv(img, mask, coor_h, coor_w)
+            result[i] = local_conv(img, mask, coor_h, coor_w)
         
         return
     # Main part
