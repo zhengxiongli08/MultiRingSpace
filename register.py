@@ -4,7 +4,6 @@
 # Multiple scale ring space algorithm
 
 import os
-import taichi as ti
 import cv2 as cv
 import pickle
 import numpy as np
@@ -15,8 +14,6 @@ from conv import get_mask_list, get_conv_list, get_diff_list
 from keypoint import get_kps, get_color_keypoint_img
 from eigen import get_eigens
 from match import Matching
-
-ti.init(arch = ti.gpu)
 
 
 # Functions
