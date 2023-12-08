@@ -6,12 +6,16 @@
 
 import numba
 import numpy as np
+import taichi as ti
 from numba import njit, prange
 
 
 # Functions
-@njit(parallel=True)
-def local_conv(src, mask, coor_h, coor_w):
+@ti.func
+def local_conv(src: ti.types.ndarray(), 
+             mask: ti.types.ndarray(), 
+             coor_h: ti.i32, 
+             coor_w: ti.i32) -> ti.f32:
     """
     Function:
         Do convolution in designated position
@@ -23,18 +27,19 @@ def local_conv(src, mask, coor_h, coor_w):
     Return:
         Convolution result
     """
-    result = 0
+    result = 0.0
     radius = int((mask.shape[0] - 1) / 2)
     size = mask.shape[0]
-    for k in prange(0, size):
-        for l in prange(0, size):
-            img_value = src[coor_h-radius+k, coor_w-radius+l]
-            mask_value = mask[k, l]
-            result += img_value * mask_value
+    ti.loop_config(serialize=True)
+    for k, l in ti.ndrange((0, size), (0, size)):
+        img_value = src[coor_h-radius+k, coor_w-radius+l]
+        mask_value = mask[k, l]
+        result += img_value * mask_value
         
     return result
 
-def convolve(img, mask):
+def convolve(img: np.ndarray, 
+             mask: ti.ndarray) -> np.ndarray:
     """
     Function:
         Copy pixels at the boundaries, then send it to Taichi function
@@ -44,6 +49,27 @@ def convolve(img, mask):
     Return:
         Convolution results
     """
+    @ti.kernel
+    def _convolve(img_expand: ti.types.ndarray(), 
+                mask: ti.types.ndarray(), 
+                result: ti.types.ndarray()):
+        """
+        Function:
+            Calculate the convolution result for an already expanded image
+        Args:
+            img_expand: the image matrix that has been expanded at the boundaries
+            mask: the convolution kernel
+            result: used to store results
+        Return:
+            None
+        """
+        radius = int((mask.shape[0] - 1) / 2)
+        for i, j in ti.ndrange((0, result.shape[0]), (0, result.shape[1])):
+            result[i, j] = local_conv(img_expand, mask, i+radius, j+radius)
+        
+        return
+    # Main
+    ti.init(arch=ti.gpu)
     radius = int((mask.shape[0] - 1) / 2)
     pad_width = ((radius, radius), (radius, radius))
     img_expand = np.pad(img, pad_width, mode="edge")
@@ -52,10 +78,8 @@ def convolve(img, mask):
     # Rotate the convolution kernel
     temp = np.flipud(np.fliplr(mask))
     mask_rotate = np.ascontiguousarray(temp)
-    for i in prange(0, img.shape[0]):
-        for j in prange(0, img.shape[1]):
-            result[i, j] = local_conv(img_expand, mask_rotate, i+radius, j+radius)
-            
+    _convolve(img_expand, mask_rotate, result)
+
     return result
 
 def build_ring(radius: int, thickness: int) -> np.ndarray:
