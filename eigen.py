@@ -77,8 +77,6 @@ def get_conv_eigens(img, kps, mask_list):
     Part 1 of eigens, energy of keypoints (convolution)
     After computing, normalize it
     """
-    # Initialize Taichi
-    # ti.init(arch=ti.gpu)
     # Main part
     conv_pre = list()
     for mask in mask_list:
