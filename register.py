@@ -7,7 +7,6 @@ import os
 import cv2 as cv
 import pickle
 import numpy as np
-import concurrent.futures
 from logger import Logger
 from preprocess import read_slide, monomer_preprocess, polysome_preprocess
 from conv import get_mask_list, get_conv_list, get_diff_list
@@ -119,14 +118,8 @@ def register(params):
     params_2 = params.copy()
     params_1["slide_num"] = 1
     params_2["slide_num"] = 2
-    # kps_1, eigens_1 = compute(params_1)
-    # kps_2, eigens_2 = compute(params_2)
-    
-    with concurrent.futures.ProcessPoolExecutor(max_workers=2) as executor:
-        future_1 = executor.submit(compute, params_1)
-        future_2 = executor.submit(compute, params_2)
-        kps_1, eigens_1 = future_1.result()
-        kps_2, eigens_2 = future_2.result()
+    kps_1, eigens_1 = compute(params_1)
+    kps_2, eigens_2 = compute(params_2)
     
     # Match them
     match_kps_1, match_kps_2 = Matching(kps_1, eigens_1, kps_2, eigens_2)
@@ -174,7 +167,7 @@ if __name__ == "__main__":
     params["radius_min"] = 5
     params["radius_max"] = 30
     params["thickness"] = 7
-    params["resize_height"] = 256
+    params["resize_height"] = 512
     
     register(params)
     
