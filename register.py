@@ -122,7 +122,7 @@ def register(params):
     # kps_1, eigens_1 = compute(params_1)
     # kps_2, eigens_2 = compute(params_2)
     
-    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=2) as executor:
         future_1 = executor.submit(compute, params_1)
         future_2 = executor.submit(compute, params_2)
         kps_1, eigens_1 = future_1.result()
