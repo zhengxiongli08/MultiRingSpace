@@ -7,38 +7,26 @@ import faiss
 import heapq
 import cv2
 import time
-import taichi as ti
+import numba
+from numba import njit, prange
 
 
 # Functions
+@njit(parallel=True)
 def get_euclidean_mat(eigens_1, eigens_2):
-    """
-    Calculate the euclidean distance between two rows
-    Result's coordinate in height direction represents rows of eigens_1
-    coordinate in width direction represents rows of eigens_2
-    """
-    @ti.kernel
-    def _euclidean(eigens_1: ti.types.ndarray(), 
-                   eigens_2: ti.types.ndarray(),
-                   result: ti.types.ndarray()):
-        for i, j in ti.ndrange((0, eigens_1.shape[0]), (0, eigens_2.shape[0])):
-            sum_value = ti.cast(0, ti.float32)
-            for index in range(0, eigens_1.shape[1]):
-                temp = eigens_1[i, index] - eigens_2[j, index]
-                temp = ti.pow(temp, 2)
-                sum_value += temp
-            result[i, j] = sum_value
-        
-        return
-    # Main
-    ti.init(arch=ti.cpu)
     kps_1_len = eigens_1.shape[0]
     kps_2_len = eigens_2.shape[0]
     eigens_1 = eigens_1.astype(np.float32)
     eigens_2 = eigens_2.astype(np.float32)
     result = np.zeros((kps_1_len, kps_2_len), dtype=np.float32)
-    _euclidean(eigens_1, eigens_2, result)
-
+    for i in prange(0, eigens_1.shape[0]):
+        for j in prange(0, eigens_2.shape[0]):
+            sum_value = 0
+            for index in prange(0, eigens_1.shape[1]):
+                temp = pow((eigens_1[i, index] - eigens_2[j, index]), 2)
+                sum_value += temp
+            result[i, j] = sum_value
+    
     return result
 
 def RemoveRepetition(Index_Similar, Similarity, Order_Keypoint):

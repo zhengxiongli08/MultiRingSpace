@@ -30,7 +30,6 @@ def local_conv(src: ti.types.ndarray(),
     result = 0.0
     radius = int((mask.shape[0] - 1) / 2)
     size = mask.shape[0]
-    ti.loop_config(serialize=True)
     for k, l in ti.ndrange((0, size), (0, size)):
         img_value = src[coor_h-radius+k, coor_w-radius+l]
         mask_value = mask[k, l]
@@ -69,7 +68,6 @@ def convolve(img: np.ndarray,
         
         return
     # Main
-    ti.init(arch=ti.gpu)
     radius = int((mask.shape[0] - 1) / 2)
     pad_width = ((radius, radius), (radius, radius))
     img_expand = np.pad(img, pad_width, mode="edge")
@@ -141,6 +139,7 @@ def get_conv_list(img: np.ndarray,
     Returns:
         List of convolution results
     """
+    ti.init(arch=ti.gpu)
     conv_list = list()
     for mask in mask_list:
         img_conv = convolve(img, mask)
@@ -167,6 +166,7 @@ def get_diff_list(conv_list: list) -> list:
     return diff_list
 
 if __name__ == "__main__":
+    ti.init(arch=ti.gpu)
     src_mat = np.arange(25).reshape((5, 5))
     print(src_mat)
     kernel = np.ones((3, 3))

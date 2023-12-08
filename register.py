@@ -8,6 +8,7 @@ import cv2 as cv
 import pickle
 import numpy as np
 import concurrent.futures
+import taichi as ti
 from logger import Logger
 from preprocess import read_slide, monomer_preprocess, polysome_preprocess
 from conv import get_mask_list, get_conv_list, get_diff_list
@@ -18,6 +19,7 @@ from match import Matching
 
 # Functions
 def compute(params):
+    # ti.init(arch=ti.gpu)
     # Get necessary information
     slide_num = params["slide_num"]
     if (slide_num == 1):
@@ -40,7 +42,7 @@ def compute(params):
     myLogger.print(f"Start processing for slide {slide_num}.")
     # Read image and preprocess it
     img_origin = read_slide(slide_path, resize_height)
-    myLogger.print(f"Processing slide {params[f'slide_{slide_num}_name']}")
+    myLogger.print(f"Read slide {params[f'slide_{slide_num}_name']} done.")
     if (slide_type == "monomer"):
         img_origin_gray, img_nobg, img_nobg_gray = monomer_preprocess(img_origin)
     elif (slide_type == "polysome"):
@@ -119,11 +121,14 @@ def register(params):
     params_2 = params.copy()
     params_1["slide_num"] = 1
     params_2["slide_num"] = 2
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-        future_1 = executor.submit(compute, params_1)
-        future_2 = executor.submit(compute, params_2)
-        kps_1, eigens_1 = future_1.result()
-        kps_2, eigens_2 = future_2.result()
+    kps_1, eigens_1 = compute(params_1)
+    kps_2, eigens_2 = compute(params_2)
+    
+    # with concurrent.futures.ProcessPoolExecutor(max_workers=2) as executor:
+    #     future_1 = executor.submit(compute, params_1)
+    #     future_2 = executor.submit(compute, params_2)
+    #     kps_1, eigens_1 = future_1.result()
+    #     kps_2, eigens_2 = future_2.result()
     
     # Match them
     match_kps_1, match_kps_2 = Matching(kps_1, eigens_1, kps_2, eigens_2)

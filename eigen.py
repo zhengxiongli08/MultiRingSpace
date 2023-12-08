@@ -4,35 +4,47 @@
 import numba
 import numpy as np
 import pickle
-import taichi as ti
 from numba import njit, prange
-from conv import local_conv
 
 
 # Functions
+@njit(parallel=True)
+def local_conv(src, mask, coor_h, coor_w):
+    """
+    Function:
+        Do convolution in designated position
+    Args:
+        src: source matrix
+        mask: convolution kernel
+        i: convolution coordinates in height direction
+        j: convolution coordinates in width direction
+    Return:
+        Convolution result
+    """
+    result = 0
+    radius = int((mask.shape[0] - 1) / 2)
+    size = mask.shape[0]
+    for k in prange(0, size):
+        for l in prange(0, size):
+            img_value = src[coor_h-radius+k, coor_w-radius+l]
+            mask_value = mask[k, l]
+            result += img_value * mask_value
+    
+    return result
+    
 def get_conv_eigen(img, kps, mask):
     """
     Warp for _get_conv_eigen.
     Get convolution values for all keypoints using a single kernel
     'result' is a numpy array whose length is keypoints' number
     """
-    @ti.kernel
-    def _get_conv_eigen(img: ti.types.ndarray(), 
-                        kps: ti.types.ndarray(), 
-                        mask: ti.types.ndarray(), 
-                        result: ti.types.ndarray()):
-        
-        kps_length = kps.shape[0]
-        for i in range(0, kps_length):
-            coor_h, coor_w = kps[i, 0], kps[i, 1]
-            result[i] = local_conv(img, mask, coor_h, coor_w)
-        
-        return
     # Main part
-    ti.init(arch=ti.gpu)
     kps_length = kps.shape[0]
     result = np.zeros(kps_length)
-    _get_conv_eigen(img, kps, mask, result)
+    # _get_conv_eigen(img, kps, mask, result)
+    for i in range(0, kps_length):
+        coor_h, coor_w = kps[i, 0], kps[i, 1]
+        result[i] = local_conv(img, mask, coor_h, coor_w)
 
     return result
 
@@ -65,6 +77,8 @@ def get_conv_eigens(img, kps, mask_list):
     Part 1 of eigens, energy of keypoints (convolution)
     After computing, normalize it
     """
+    # Initialize Taichi
+    # ti.init(arch=ti.gpu)
     # Main part
     conv_pre = list()
     for mask in mask_list:
