@@ -17,7 +17,6 @@ def get_euclidean_mat(eigens_1, eigens_2):
     Result's coordinate in height direction represents rows of eigens_1
     coordinate in width direction represents rows of eigens_2
     """
-    ti.init(arch=ti.cpu)
     @ti.kernel
     def _euclidean(eigens_1: ti.types.ndarray(), 
                    eigens_2: ti.types.ndarray(),
@@ -31,7 +30,8 @@ def get_euclidean_mat(eigens_1, eigens_2):
             result[i, j] = sum_value
         
         return
-    # Declare space for results
+    # Main
+    ti.init(arch=ti.cpu)
     kps_1_len = eigens_1.shape[0]
     kps_2_len = eigens_2.shape[0]
     eigens_1 = eigens_1.astype(np.float32)
