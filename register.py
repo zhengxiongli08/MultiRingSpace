@@ -40,6 +40,7 @@ def compute(params):
     myLogger.print(f"Start processing for slide {slide_num}.")
     # Read image and preprocess it
     img_origin = read_slide(slide_path, resize_height)
+    myLogger.print(f"Processing slide {params[f'slide_{slide_num}_name']}")
     if (slide_type == "monomer"):
         img_origin_gray, img_nobg, img_nobg_gray = monomer_preprocess(img_origin)
     elif (slide_type == "polysome"):
@@ -118,7 +119,7 @@ def register(params):
     params_2 = params.copy()
     params_1["slide_num"] = 1
     params_2["slide_num"] = 2
-    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
         future_1 = executor.submit(compute, params_1)
         future_2 = executor.submit(compute, params_2)
         kps_1, eigens_1 = future_1.result()
