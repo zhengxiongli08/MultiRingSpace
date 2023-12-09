@@ -4,9 +4,11 @@
 # Multiple scale ring space algorithm
 
 import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 import cv2 as cv
 import pickle
 import numpy as np
+import argparse
 from logger import Logger
 from preprocess import read_slide, monomer_preprocess, polysome_preprocess
 from conv import get_mask_list, get_conv_list, get_diff_list
@@ -16,6 +18,49 @@ from match import Matching
 
 
 # Functions
+def get_params():
+    """
+    Receive parameters from terminal
+    """
+    parser = argparse.ArgumentParser(description="Indicate parameters, use --help for help.")
+    parser.add_argument("--group_path", type=str, default="../BiopsyDatabase/WSI_100Cases/BC-1-group1", help="group's path")
+    parser.add_argument("--result_path", type=str, default="../result", help="result's folder")
+    parser.add_argument("--slide_type", type=str, default="monomer", help="slide type, monomer/polysome")
+    parser.add_argument("--radius_min", type=int, default=5, help="minimum radius of ring")
+    parser.add_argument("--radius_max", type=int, default=30, help="maximum radius of ring")
+    parser.add_argument("--thickness", type=int, default=7, help="thickness of the ring")
+    parser.add_argument("--resize_height", type=int, default=1024, help="image's height after resize")
+    # Init
+    args = parser.parse_args()
+    # Extract database path
+    database_path = os.path.dirname(args.group_path)
+    # Extract group name
+    group_name = os.path.basename(args.group_path)
+    # Extract slide information
+    slides_list = list()
+    for file_name in os.listdir(args.group_path):
+        if file_name.endswith("svs"):
+            slides_list.append(file_name)
+    slide_1_path = os.path.join(args.group_path, slides_list[0])
+    slide_2_path = os.path.join(args.group_path, slides_list[1])
+    # Put them into a dictionary
+    params = dict()
+    params["database_path"] = database_path
+    params["group_path"] = args.group_path
+    params["group_name"] = group_name
+    params["result_path"] = args.result_path
+    params["slide_type"] = args.slide_type
+    params["radius_min"] = args.radius_min
+    params["radius_max"] = args.radius_max
+    params["thickness"] = args.thickness
+    params["resize_height"] = args.resize_height
+    params["slide_1_path"] = slide_1_path
+    params["slide_2_path"] = slide_2_path
+    params["slide_1_name"] = slides_list[0]
+    params["slide_2_name"] = slides_list[1]
+    
+    return params
+
 def compute(params):
     # Get necessary information
     slide_num = params["slide_num"]
@@ -97,11 +142,12 @@ def compute(params):
     
     return kps, eigens
 
-def register(params):
+def register():
     """
     Match 2 slides using multiple scale ring space algorithm
     """
     # Record dict's information
+    params = get_params()
     print(f"Start processing {params['group_path']}")
     result_path = params["result_path"]
     myLogger = Logger(result_path)
@@ -142,33 +188,10 @@ def register(params):
     return
 
 if __name__ == "__main__":
-    GOLDCASE_PATH = "../BiopsyDatabase/WSI_100Cases"
-    params = {}
-
-    group_name = "BC-1-group1"
-    group_path = os.path.join(GOLDCASE_PATH, group_name)
-    slides_list = list()
-    for file_name in os.listdir(group_path):
-        if file_name.endswith(".svs"):
-            slides_list.append(file_name)
-    # Get path of slides
-    slide_1_path = os.path.join(group_path, slides_list[0])
-    slide_2_path = os.path.join(group_path, slides_list[1])
-    params["groups_path"] = GOLDCASE_PATH
-    params["group_path"] = group_path
-    params["group_name"] = group_name
-    params["result_path"] = "../result"
-    params["slide_1_name"] = slides_list[0]
-    params["slide_2_name"] = slides_list[1]
-    params["slide_1_path"] = slide_1_path
-    params["slide_2_path"] = slide_2_path
-    params["slide_num"] = 0
-    params["slide_type"] = "monomer"
-    params["radius_min"] = 5
-    params["radius_max"] = 30
-    params["thickness"] = 7
-    params["resize_height"] = 512
-    
-    register(params)
+    import shutil
+    if os.path.exists("../result"):
+        shutil.rmtree("../result")
+    os.mkdir("../result")
+    register()
     
     print("Program finished!")
