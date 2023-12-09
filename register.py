@@ -9,6 +9,7 @@ import cv2 as cv
 import pickle
 import numpy as np
 import argparse
+import shutil
 from logger import Logger
 from preprocess import read_slide, monomer_preprocess, polysome_preprocess
 from conv import get_mask_list, get_conv_list, get_diff_list
@@ -30,7 +31,7 @@ def get_params():
     parser.add_argument("--radius_max", type=int, default=30, help="maximum radius of ring")
     parser.add_argument("--thickness", type=int, default=7, help="thickness of the ring")
     parser.add_argument("--resize_height", type=int, default=1024, help="image's height after resize")
-    # Init
+    # Initialize parser
     args = parser.parse_args()
     # Extract database path
     database_path = os.path.dirname(args.group_path)
@@ -43,6 +44,10 @@ def get_params():
             slides_list.append(file_name)
     slide_1_path = os.path.join(args.group_path, slides_list[0])
     slide_2_path = os.path.join(args.group_path, slides_list[1])
+    # Clean up result folder
+    if os.path.exists(args.result_path):
+        shutil.rmtree(args.result_path)
+    os.mkdir(args.result_path)
     # Put them into a dictionary
     params = dict()
     params["database_path"] = database_path
@@ -186,10 +191,6 @@ def register():
     return
 
 if __name__ == "__main__":
-    import shutil
-    if os.path.exists("../result"):
-        shutil.rmtree("../result")
-    os.mkdir("../result")
     register()
     
     print("Program finished!")
