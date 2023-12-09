@@ -61,7 +61,7 @@ def get_params():
     
     return params
 
-def compute(params):
+def compute(params, myLogger):
     # Get necessary information
     slide_num = params["slide_num"]
     if (slide_num == 1):
@@ -77,8 +77,6 @@ def compute(params):
     thickness = params["thickness"]
     result_path = params["result_path"]
     resize_height = params["resize_height"]
-    
-    myLogger = Logger(result_path, f"log-{slide_num}.log")
     
     # Begin to compute keypoints and eigenvectors
     myLogger.print(f"Start processing for slide {slide_num}.")
@@ -164,8 +162,8 @@ def register():
     params_2 = params.copy()
     params_1["slide_num"] = 1
     params_2["slide_num"] = 2
-    kps_1, eigens_1 = compute(params_1)
-    kps_2, eigens_2 = compute(params_2)
+    kps_1, eigens_1 = compute(params_1, myLogger)
+    kps_2, eigens_2 = compute(params_2, myLogger)
     
     # Match them
     match_kps_1, match_kps_2 = Matching(kps_1, eigens_1, kps_2, eigens_2)
