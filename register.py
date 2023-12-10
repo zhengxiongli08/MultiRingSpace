@@ -42,8 +42,26 @@ def get_params():
     for file_name in os.listdir(args.group_path):
         if file_name.endswith("svs"):
             slides_list.append(file_name)
+    if len(slides_list) != 2:
+        raise Exception(f"{len(slides_list)} slides detected, which should be 2")
     slide_1_path = os.path.join(args.group_path, slides_list[0])
     slide_2_path = os.path.join(args.group_path, slides_list[1])
+    # Extract slide landmarks information
+    landmarks_path = os.path.join(args.group_path, "landmarks")
+    landmarks_folders = os.listdir(landmarks_path)
+    if landmarks_folders[0] in slides_list[0] and landmarks_folders[1] in slides_list[1]:
+        landmarks_1_path = os.path.join(landmarks_path, landmarks_folders[0])
+        landmarks_2_path = os.path.join(landmarks_path, landmarks_folders[1])
+    elif landmarks_folders[0] in slides_list[1] and landmarks_folders[1] in slides_list[0]:
+        landmarks_1_path = os.path.join(landmarks_path, landmarks_folders[1])
+        landmarks_2_path = os.path.join(landmarks_path, landmarks_folders[0])
+    else:
+        raise Exception("Landmarks not found.")
+    # Extract magnification
+    if "magnification" in group_name:
+        magnification = "40x"
+    else:
+        magnification = "20x"
     # Clean up result folder
     if os.path.exists(args.result_path):
         shutil.rmtree(args.result_path)
@@ -63,6 +81,9 @@ def get_params():
     params["slide_2_path"] = slide_2_path
     params["slide_1_name"] = slides_list[0]
     params["slide_2_name"] = slides_list[1]
+    params["landmarks_1_path"] = landmarks_1_path
+    params["landmarks_2_path"] = landmarks_2_path
+    params["magnification"] = magnification
     
     return params
 

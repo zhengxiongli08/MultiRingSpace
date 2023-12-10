@@ -7,6 +7,7 @@ import numpy as np
 import cv2 as cv
 import pickle
 import openslide
+import argparse
 from natsort import natsorted
 from draw import draw_line
 
@@ -131,30 +132,47 @@ def quantize(coords_1, coords_2, affine_matrix):
     
     return mean_error
 
-def evaluate(result_path):
+def get_params():
     """
-    Evaluate the match result
+    Receive parameters from terminal
     """
-    # Read parameters dictionary
-    eva_data_path = os.path.join(result_path, "eva_data")
-    params_path = os.path.join(eva_data_path, "params.pkl")
-    with open(params_path, 'rb') as params_file:
+    parser = argparse.ArgumentParser(description="Please indicate paramters, use --help for help")
+    parser.add_argument("--result_path", type=str, default="../result", help="path for evaluate-ready result")
+    # Initialize parser
+    args = parser.parse_args()
+    # Extract the zoon level
+    dict_path = os.path.join(args.result_path, "eva_data", "params.pkl")
+    # Read the parameters dict
+    with open(dict_path, "rb") as params_file:
         params = pickle.load(params_file)
-    # Get json files for both slides and coordinates
-    jsons_path_1, jsons_path_2 = get_paths(params)
-    slide_1_path = params["slide_2_path"]
+
+    return params
+
+def evaluate():
+    """
+    Evaluate the performance of image registration
+    """
+    # Read parameters dict
+    params = get_params()
+    # Extract necessary parameters
+    result_path = params["result_path"]
+    jsons_path_1 = params["landmarks_1_path"]
+    jsons_path_2 = params["landmarks_2_path"]
+    slide_1_path = params["slide_1_path"]
     slide_2_path = params["slide_2_path"]
     resize_height = params["resize_height"]
+    eva_data_path = os.path.join(result_path, "eva_data")
+    kps_1_path = os.path.join(eva_data_path, "match_kps_1.npy")
+    kps_2_path = os.path.join(eva_data_path, "match_kps_2.npy")
+    img_1_path = os.path.join(result_path, "slide-1", "img_origin.png")
+    img_2_path = os.path.join(result_path, "slide-2", "img_origin.png")
+    # Get the manual landmarks
     coords_1 = get_coords(jsons_path_1, slide_1_path, resize_height)
     coords_2 = get_coords(jsons_path_2, slide_2_path, resize_height)
     # Read keypoints data from npy files
-    kps_1_path = os.path.join(eva_data_path, "match_kps_1.npy")
-    kps_2_path = os.path.join(eva_data_path, "match_kps_2.npy")
     kps_1 = np.load(kps_1_path)
     kps_2 = np.load(kps_2_path)
-    # Read both images
-    img_1_path = os.path.join(result_path, "slide-1", "img_origin.png")
-    img_2_path = os.path.join(result_path, "slide-2", "img_origin.png")
+    # Read thumbnails
     img_1 = cv.imread(img_1_path)
     img_2 = cv.imread(img_2_path)
     
@@ -173,8 +191,7 @@ def evaluate(result_path):
     # Draw lines for manual coordinates
     img_match_affine_manual = draw_line(img_1, img_2_affine, coords_1, coords_2_new)
     
-    # Quantize the regiatration results
-    mean_error = quantize(coords_1, coords_2, affine_matrix)    
+    # Quantize
     
     # Save results
     eva_result_path = os.path.join(result_path, "eva_result")
@@ -193,13 +210,10 @@ def evaluate(result_path):
     cv.imwrite(img_combo_affine_path, img_combo_affine)
     cv.imwrite(img_match_affine_path, img_match_affine)
     cv.imwrite(img_match_affine_manual_path, img_match_affine_manual)
-    
-    return mean_error
+
+    return
     
 if __name__ == '__main__':
-    result_path = "../result"
-
-    result = evaluate(result_path)
-    print(f"Mean error: {result:.2f}")
+    evaluate()
     
     print("Program finished!")
