@@ -58,19 +58,25 @@ def read_jsons(jsons_path):
     
     return mean_coordinates
 
-def get_coords(jsons_path, slide_path, resize_height):
+def get_resize_factor(slide_path, resize_height):
+    """
+    Calculate the resize factor
+    size_new = size_old * resize_factor
+    """
+    slide = pyvips.Image.new_from_file(slide_path, level=0)
+    resize_factor = resize_height / slide.height
+    
+    return resize_factor
+
+def get_coords(jsons_path, resize_factor):
     """
     Get manual coordinates of keypoints given by humans
     Scale it using the resize factor
     """
     # Get mean coordinates from json fils
     mean_coordinates = read_jsons(jsons_path)
-    # Get resize factor
-    slide = pyvips.Image.new_from_file(slide_path, level=0)
-    # Attention: dimension order is ()
-    resize_factor = slide.height / resize_height
     # Calculate final coordinates
-    final_coordinates = mean_coordinates / resize_factor
+    final_coordinates = mean_coordinates * resize_factor
     final_coordinates = final_coordinates.astype(np.int32)
     
     return final_coordinates
@@ -94,42 +100,28 @@ def affine_transform(kps_1, kps_2, img_2):
     
     return img_2_new, kps_2_new, affine_matrix
 
-def get_paths(params):
-    """
-    Get paths for slide-1's json files
-    slide-2's json files
-    """
-    group_path = os.path.join(params["groups_path"], params["group_name"])
-    slide_1_path = params["slide_1_path"]
-    slide_2_path = params["slide_2_path"]
-    slide_1_name = os.path.basename(slide_1_path)
-    slide_2_name = os.path.basename(slide_2_path)
-    landmarks_path = os.path.join(group_path, "landmarks")
-    landmarks_folder = os.listdir(landmarks_path)
-    # Match slide name with landmark folders' name
-    if (landmarks_folder[0] in slide_1_name) and (landmarks_folder[1] in slide_2_name):
-        jsons_path_1 = os.path.join(landmarks_path, landmarks_folder[0])
-        jsons_path_2 = os.path.join(landmarks_path, landmarks_folder[1])
-    elif (landmarks_folder[1] in slide_1_name) and (landmarks_folder[0] in slide_2_name):
-        jsons_path_1 = os.path.join(landmarks_path, landmarks_folder[1])
-        jsons_path_2 = os.path.join(landmarks_path, landmarks_folder[0])
-    else:
-        raise Exception(f"Slide name mismatch. Check {group_path}")
-    
-    return jsons_path_1, jsons_path_2
-
-def quantize(coords_1, coords_2, affine_matrix):
+def quantize(coords_1, coords_2, affine_matrix, resize_factor, magnification):
     """
     Quantize the results of image registration
+    We transform img2(floating) to img1(fixed),
+    So it should be resize_factor_1
     """
     # Do affine transformation for manual coordinates
     coords_2_new = cv.transform(coords_2.reshape((-1, 1, 2)), affine_matrix)
     coords_2_new = np.squeeze(coords_2_new, axis=1)
-    # Calculate Euclidean Distances
-    errors = np.linalg.norm(coords_1 - coords_2, axis=1)
-    mean_error = np.mean(errors)
+    # Calculate Euclidean Distances and pixel errors
+    pixel_errors = np.linalg.norm(coords_1 - coords_2, axis=1)
+    mean_pixel_error = np.mean(pixel_errors)
+    # Calculate real world error in um units
+    top_pixel_error = mean_pixel_error / resize_factor
+    if magnification == "20x":
+        um_error = top_pixel_error * 0.5
+    elif magnification == "40x":
+        um_error = top_pixel_error * 0.25
+    else:
+        raise Exception("Unsupported magnification factor.")
     
-    return mean_error
+    return mean_pixel_error, um_error
 
 def get_params():
     """
@@ -160,14 +152,17 @@ def evaluate():
     slide_1_path = params["slide_1_path"]
     slide_2_path = params["slide_2_path"]
     resize_height = params["resize_height"]
+    magnification = params["magnification"]
     eva_data_path = os.path.join(result_path, "eva_data")
     kps_1_path = os.path.join(eva_data_path, "match_kps_1.npy")
     kps_2_path = os.path.join(eva_data_path, "match_kps_2.npy")
     img_1_path = os.path.join(result_path, "slide-1", "img_origin.png")
     img_2_path = os.path.join(result_path, "slide-2", "img_origin.png")
     # Get the manual landmarks
-    coords_1 = get_coords(jsons_path_1, slide_1_path, resize_height)
-    coords_2 = get_coords(jsons_path_2, slide_2_path, resize_height)
+    resize_factor_1 = get_resize_factor(slide_1_path, resize_height)
+    resize_factor_2 = get_resize_factor(slide_2_path, resize_height)
+    coords_1 = get_coords(jsons_path_1, resize_factor_1)
+    coords_2 = get_coords(jsons_path_2, resize_factor_2)
     # Read keypoints data from npy files
     kps_1 = np.load(kps_1_path)
     kps_2 = np.load(kps_2_path)
@@ -191,6 +186,9 @@ def evaluate():
     img_match_affine_manual = draw_line(img_1, img_2_affine, coords_1, coords_2_new)
     
     # Quantize
+    pixel_error, um_error = quantize(coords_1, coords_2, affine_matrix, resize_factor_1, magnification)
+    print(f"Pixel error: {pixel_error:.2f} pixels.")
+    print(f"um error: {um_error:.2f}um")
     
     # Save results
     eva_result_path = os.path.join(result_path, "eva_result")
