@@ -10,7 +10,7 @@ from math import pi
 
 
 # Functions
-def draw_line(img_1, img_2, kps_1, kps_2):
+def draw_line(img_1, img_2, kps_1, kps_2, thickness=1):
     """
     Draw lines between corresponding keypoints
     Order of coordinates is (coor_h, coor_w)
@@ -31,7 +31,7 @@ def draw_line(img_1, img_2, kps_1, kps_2):
         kp_2_coor_h, kp_2_coor_w = kps_2[i, 0], kps_2[i, 1]
         coor_left = (kp_1_coor_w, kp_1_coor_h)
         coor_right = (kp_2_coor_w + shift, kp_2_coor_h)
-        img = cv.line(img, coor_left, coor_right, color=color, thickness=1)
+        img = cv.line(img, coor_left, coor_right, color=color, thickness=thickness)
     
     return img
 

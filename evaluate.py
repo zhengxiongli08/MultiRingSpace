@@ -179,7 +179,7 @@ def evaluate():
     # Draw lines before affine transformation
     img_combo_no_affine = np.hstack((img_1, img_2))
     img_match_no_affine = draw_line(img_1, img_2, kps_1, kps_2)
-    img_match_no_affine_manual = draw_line(img_1, img_2, coords_1, coords_2)
+    img_match_no_affine_manual = draw_line(img_1, img_2, coords_1, coords_2, thickness=3)
     # Do affine transformation
     img_2_affine, kps_2_affine, affine_matrix = affine_transform(kps_1, kps_2, img_2)
     # Draw lines after affine transformation
