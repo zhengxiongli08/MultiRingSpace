@@ -1,6 +1,6 @@
+
 # This program is used to remove background for monomer slides and polysome slides
 
-import openslide
 import rembg
 import numpy as np
 import cv2 as cv
