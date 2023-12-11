@@ -6,7 +6,7 @@ import os
 import numpy as np
 import cv2 as cv
 import pickle
-import openslide
+import pyvips
 import argparse
 from natsort import natsorted
 from draw import draw_line
@@ -66,10 +66,9 @@ def get_coords(jsons_path, slide_path, resize_height):
     # Get mean coordinates from json fils
     mean_coordinates = read_jsons(jsons_path)
     # Get resize factor
-    slide = openslide.open_slide(slide_path)
+    slide = pyvips.Image.new_from_file(slide_path, level=0)
     # Attention: dimension order is ()
-    _, slide_max_height = slide.level_dimensions[0]
-    resize_factor = slide_max_height / resize_height
+    resize_factor = slide.height / resize_height
     # Calculate final coordinates
     final_coordinates = mean_coordinates / resize_factor
     final_coordinates = final_coordinates.astype(np.int32)
