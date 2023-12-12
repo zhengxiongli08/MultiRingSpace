@@ -8,6 +8,7 @@ import cv2 as cv
 import pickle
 import pyvips
 import argparse
+from logger import Logger
 from natsort import natsorted
 from draw import draw_line
 
@@ -169,6 +170,8 @@ def evaluate():
     # Read thumbnails
     img_1 = cv.imread(img_1_path)
     img_2 = cv.imread(img_2_path)
+    # Create logger
+    myLogger = Logger(result_path)
     
     # Draw lines before affine transformation
     img_combo_no_affine = np.hstack((img_1, img_2))
@@ -187,8 +190,8 @@ def evaluate():
     
     # Quantize
     pixel_error, um_error = quantize(coords_1, coords_2, affine_matrix, resize_factor_1, magnification)
-    print(f"Pixel error: {pixel_error:.2f} pixels.")
-    print(f"um error: {um_error:.2f}um")
+    myLogger.print(f"Pixel error: {pixel_error:.2f} pixels.")
+    myLogger.print(f"um error: {um_error:.2f}um")
     
     # Save results
     eva_result_path = os.path.join(result_path, "eva_result")
