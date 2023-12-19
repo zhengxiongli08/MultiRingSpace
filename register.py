@@ -192,7 +192,7 @@ def register():
     kps_2, eigens_2 = compute(params_2, myLogger)
     
     # Match them
-    match_kps_1, match_kps_2 = Matching(kps_1, eigens_1, kps_2, eigens_2)
+    match_kps_1, match_kps_2 = Matching(kps_1, eigens_1, kps_2, eigens_2, result_path)
     
     # Save data for evaluation
     eva_data_path = os.path.join(result_path, "eva_data")

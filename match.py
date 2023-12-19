@@ -7,7 +7,6 @@ import faiss
 import heapq
 import cv2
 import time
-import numba
 from numba import njit, prange
 
 
@@ -352,7 +351,7 @@ def DoLocalMatching(KeypointA, KeypointB, TransMat, Similarity):
         MatchPointB, MatchPointA = LocalMatching(KeypointB, KeypointA, cv2.invertAffineTransform(TransMat), Similarity.T)  # 逆变换与转置
     return MatchPointA, MatchPointB
 
-def Matching(KeypointA, EncodeA, KeypointB, EncodeB):
+def Matching(KeypointA, EncodeA, KeypointB, EncodeB, result_path="../result"):
     """
         依据关键点及其描述子向量，计算匹配结果
         【提示】如果结果不理想，考虑优先修改GeometricConsistencyForRegion()函数的参数
@@ -366,7 +365,7 @@ def Matching(KeypointA, EncodeA, KeypointB, EncodeB):
     #
     from logger import Logger
     global myLogger
-    myLogger = Logger("../result")
+    myLogger = Logger(result_path)
     
     # 给KPA坐标编号
     Order_KeypointA = np.arange(KeypointA.shape[0])
@@ -390,3 +389,11 @@ def Matching(KeypointA, EncodeA, KeypointB, EncodeB):
     # draw_bk.PointLine(MatchResultA, MatchResultB, SizeKps=10, LineWidth=1.5, path="final.png")
     #
     return MatchResultA, MatchResultB
+
+if __name__ == "__main__":
+    import pickle
+    with open("./temp/match_params.pkl", "rb") as file: 
+        kps_1, eigens_1, kps_2, eigens_2 = pickle.load(file)
+    match_kps_1, match_kps_2 = Matching(kps_1, eigens_1, kps_2, eigens_2)
+    
+    print("Program finished.")
