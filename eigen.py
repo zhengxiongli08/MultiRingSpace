@@ -8,7 +8,7 @@ from numba import njit, prange
 
 
 # Functions
-@njit(parallel=True)
+@njit
 def local_conv(src, mask, coor_h, coor_w):
     """
     Function:
@@ -24,8 +24,8 @@ def local_conv(src, mask, coor_h, coor_w):
     result = 0
     radius = int((mask.shape[0] - 1) / 2)
     size = mask.shape[0]
-    for k in prange(0, size):
-        for l in prange(0, size):
+    for k in range(0, size):
+        for l in range(0, size):
             img_value = src[coor_h-radius+k, coor_w-radius+l]
             mask_value = mask[k, l]
             result += img_value * mask_value

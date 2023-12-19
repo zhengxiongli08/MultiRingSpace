@@ -27,7 +27,7 @@ def local_conv(src: ti.types.ndarray(),
     Return:
         Convolution result
     """
-    result = 0.0
+    result = ti.cast(0, ti.f32)
     radius = int((mask.shape[0] - 1) / 2)
     size = mask.shape[0]
     for k, l in ti.ndrange((0, size), (0, size)):
@@ -166,12 +166,8 @@ def get_diff_list(conv_list: list) -> list:
     return diff_list
 
 if __name__ == "__main__":
-    ti.init(arch=ti.gpu)
-    src_mat = np.arange(25).reshape((5, 5))
-    print(src_mat)
-    kernel = np.ones((3, 3))
-    kernel[0, 0] = 0
-    res1 = convolve(src_mat, kernel)
-    print(res1)
+    mask_list = get_mask_list(5, 30, 7)
+    img = np.random.randint(0, 255, (1000, 1000)).astype(np.uint8)
+    conv_list = get_conv_list(img, mask_list)
     
     print("Program finished!")    
