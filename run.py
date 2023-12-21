@@ -22,10 +22,9 @@ def my_run(command):
 
 def main():
     # Parameters for registration    
-    commands_reg_20x = list()
-    commands_reg_40x = list()
+    commands_reg = list()
     commands_eva = list()
-    count = 0
+    
     # Scan database
     for group_name in natsorted(os.listdir(GOLDCASE_PATH)):
         group_path = os.path.join(GOLDCASE_PATH, group_name)
@@ -33,36 +32,24 @@ def main():
         command_reg = (
             f"python register.py "
             f"--group_path={group_path} "
-            f"--result_path={result_path} "
-            f"--resize_height=1024"
+            f"--result_path={result_path}"
         )
         command_eva = (
             f"python evaluate.py "
             f"--result_path={result_path}"
         )
-        if "magnification" in group_name:
-            commands_reg_40x.append(command_reg)
-        else:
-            commands_reg_20x.append(command_reg)
-        commands_eva.append(command_eva)
         
-        count += 1
-        if count == 100:
-            break
+        commands_reg.append(command_reg)
+        commands_eva.append(command_eva)
     
-    # Execute registration for those 20x slides
-    with multiprocessing.Pool(processes=8) as pool:
-        pool.map_async(my_run, commands_reg_20x)
-        pool.close()
-        pool.join()
-    # Execute registration for those 40x slides
-    with multiprocessing.Pool(processes=2) as pool:
-        pool.map_async(my_run, commands_reg_40x)
+    # Execute registration
+    with multiprocessing.Pool(processes=10) as pool:
+        pool.map_async(my_run, commands_reg)
         pool.close()
         pool.join()
     
-    # 
-    with multiprocessing.Pool(processes=16) as pool:
+    # Execute evaluation
+    with multiprocessing.Pool(processes=10) as pool:
         pool.map_async(my_run, commands_eva)
         pool.close()
         pool.join()
