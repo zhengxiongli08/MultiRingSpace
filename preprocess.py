@@ -28,11 +28,11 @@ def read_slide(slide_path, resize_height):
     Open slide using pyvips
     """
     try:
-        img = np.load(slide_path, mmap_mode="r")
-    except:
         img = pyvips.Image.new_from_file(slide_path, level=0)
         img = np.asarray(img)[:, :, :3]
         convert(img)
+    except:
+        img = np.load(slide_path, mmap_mode="r")
     # Resize the image
     height, width = img.shape[:2]
     new_height = resize_height
