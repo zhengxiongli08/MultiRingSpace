@@ -37,10 +37,17 @@ def get_params():
     database_path = os.path.dirname(args.group_path)
     # Extract group name
     group_name = os.path.basename(args.group_path)
+    # Extract magnification
+    if "magnification" in group_name:
+        magnification = "40x"
+        file_type = ".npy"
+    else:
+        magnification = "20x"
+        file_type = ".svs"
     # Extract slide information
     slides_list = list()
     for file_name in os.listdir(args.group_path):
-        if file_name.endswith("svs"):
+        if file_name.endswith(file_type):
             slides_list.append(file_name)
     if len(slides_list) != 2:
         raise Exception(f"{len(slides_list)} slides detected, which should be 2")
@@ -57,11 +64,6 @@ def get_params():
         landmarks_2_path = os.path.join(landmarks_path, landmarks_folders[0])
     else:
         raise Exception("Landmarks not found.")
-    # Extract magnification
-    if "magnification" in group_name:
-        magnification = "40x"
-    else:
-        magnification = "20x"
     # Clean up result folder
     if os.path.exists(args.result_path):
         shutil.rmtree(args.result_path)
