@@ -64,8 +64,13 @@ def get_resize_factor(slide_path, resize_height):
     Calculate the resize factor
     size_new = size_old * resize_factor
     """
-    slide = pyvips.Image.new_from_file(slide_path, level=0)
-    resize_factor = resize_height / slide.height
+    try:    # For .svs files
+        slide = pyvips.Image.new_from_file(slide_path, level=0)
+        slide_height = slide.height
+    except: # For .npy files
+        slide = np.load(slide_path, mmap_mode="r")
+        slide_height = slide.shape[0]
+    resize_factor = resize_height / slide_height
     
     return resize_factor
 
