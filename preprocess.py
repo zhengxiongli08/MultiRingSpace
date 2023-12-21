@@ -27,15 +27,18 @@ def read_slide(slide_path, resize_height):
     """
     Open slide using pyvips
     """
-    img = pyvips.Image.new_from_file(slide_path, level=0)
-    img = np.asarray(img)[:, :, :3]
-    convert(img)
+    try:
+        img = np.load(slide_path, mmap_mode="r")
+    except:
+        img = pyvips.Image.new_from_file(slide_path, level=0)
+        img = np.asarray(img)[:, :, :3]
+        convert(img)
     # Resize the image
     height, width = img.shape[:2]
     new_height = resize_height
     new_width = int((width / height) * new_height)
     result = cv.resize(img, (new_width, new_height))
-    
+
     return result
 
 def monomer_preprocess(img_origin):
@@ -95,5 +98,13 @@ def polysome_preprocess(img_origin):
     return img_origin_gray, img_nobg, img_nobg_gray
 
 if __name__ == "__main__":
+    import os
+    test_path = "../BiopsyDatabase/WSI_100Cases/BC-23-40magnification-group1"
+    for file in os.listdir(test_path):
+        if file.endswith(".npy"):
+            slide_path = os.path.join(test_path, file)
+            img = read_slide(slide_path, 1024)
+            print(img.shape)
+
     print("Program finished.")
     
