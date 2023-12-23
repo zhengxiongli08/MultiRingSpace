@@ -10,6 +10,7 @@ import pickle
 import numpy as np
 import argparse
 import shutil
+from natsort import natsorted
 from logger import Logger
 from preprocess import read_slide, monomer_preprocess, polysome_preprocess
 from conv import get_mask_list, get_conv_list, get_diff_list
@@ -46,7 +47,7 @@ def get_params():
         file_type = ".svs"
     # Extract slide information
     slides_list = list()
-    for file_name in os.listdir(args.group_path):
+    for file_name in natsorted(os.listdir(args.group_path)):
         if file_name.endswith(file_type):
             slides_list.append(file_name)
     if len(slides_list) != 2:
