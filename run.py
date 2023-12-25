@@ -7,11 +7,12 @@ import subprocess
 import multiprocessing
 from datetime import datetime
 from natsort import natsorted
+from postprocess import postprocess
 
 
 # Global constants
 GOLDCASE_PATH = "../BiopsyDatabase/WSI_100Cases"
-ARCHIVE_PATH = "../archive"
+ARCHIVE_PATH = "../archive/warehouse"
 EVALUATE_READY_PATH = "../archive/eva_ready"
 
 # Functions
@@ -63,6 +64,11 @@ def main():
         pool.join()
     
     shutil.copytree(EVALUATE_READY_PATH, des_path)
+    
+    # Postprocess
+    pixel_error_mean, um_error_mean = postprocess(des_path)
+    print(f"Mean pixel error: {pixel_error_mean:.2f} pixels.")
+    print(f"Mean um error: {um_error_mean:.2f}um")
     
     return
 
