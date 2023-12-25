@@ -25,7 +25,7 @@ def get_params():
     Receive parameters from terminal
     """
     parser = argparse.ArgumentParser(description="Indicate parameters, use --help for help.")
-    parser.add_argument("--group_path", type=str, default="../BiopsyDatabase/WSI_100Cases/BC-1-group1", help="group's path")
+    parser.add_argument("--group_path", type=str, default="../BiopsyDatabase/WSI_100Cases/GIST-1-group3", help="group's path")
     parser.add_argument("--result_path", type=str, default="../result", help="result's folder")
     parser.add_argument("--slide_type", type=str, default="monomer", help="slide type, monomer/polysome")
     parser.add_argument("--radius_min", type=int, default=5, help="minimum radius of ring")
