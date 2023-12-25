@@ -10,6 +10,7 @@ import pickle
 import numpy as np
 import argparse
 import shutil
+import json
 from natsort import natsorted
 from logger import Logger
 from preprocess import read_slide, monomer_preprocess, polysome_preprocess
@@ -206,10 +207,9 @@ def register():
     np.save(match_kps_1_path, match_kps_1)
     np.save(match_kps_2_path, match_kps_2)
     # Save parameters dictionary
-    params_path = os.path.join(eva_data_path, "params.pkl")
-    with open(params_path, "wb") as params_file:
-        pickle.dump(params, params_file)
-
+    params_json = os.path.join(eva_data_path, "params.json")
+    with open(params_json, "w") as file:
+        json.dump(params, file)
     myLogger.print(f"Process complete. Check your results in {result_path}.")
     
     return

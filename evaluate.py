@@ -138,10 +138,10 @@ def get_params():
     # Initialize parser
     args = parser.parse_args()
     # Extract the zoon level
-    dict_path = os.path.join(args.result_path, "eva_data", "params.pkl")
+    dict_path = os.path.join(args.result_path, "eva_data", "params.json")
     # Read the parameters dict
-    with open(dict_path, "rb") as params_file:
-        params = pickle.load(params_file)
+    with open(dict_path, "r") as params_file:
+        params = json.load(params_file)
 
     return params
 
