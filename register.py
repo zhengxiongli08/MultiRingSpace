@@ -6,7 +6,6 @@
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 import cv2 as cv
-import pickle
 import numpy as np
 import argparse
 import shutil

@@ -5,7 +5,6 @@ import json
 import os
 import numpy as np
 import cv2 as cv
-import pickle
 import pyvips
 import argparse
 from logger import Logger
