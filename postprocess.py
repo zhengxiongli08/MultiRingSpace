@@ -15,7 +15,10 @@ def postprocess(exp_path):
     pixel_errors = list()
     um_errors = list()
     for group in natsorted(os.listdir(exp_path)):
-        errors_path = os.path.join(exp_path, group, "eva_result", "errors.json")
+        group_path = os.path.join(exp_path, group)
+        if not os.path.isdir(group_path):
+            continue
+        errors_path = os.path.join(group_path, "eva_result", "errors.json")
         with open(errors_path, "r") as json_file:
             errors = json.load(json_file)
         pixel_errors.append(errors["pixel_error"])
