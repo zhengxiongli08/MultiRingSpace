@@ -215,6 +215,11 @@ def evaluate():
     cv.imwrite(img_combo_affine_path, img_combo_affine)
     cv.imwrite(img_match_affine_path, img_match_affine)
     cv.imwrite(img_match_affine_manual_path, img_match_affine_manual)
+    # Results of errors
+    errors = {"pixel_error": pixel_error, "um_error": um_error}
+    errors_path = os.path.join(eva_result_path, "errors.json")
+    with open(errors_path, "w") as json_file:
+        json.dump(errors, json_file)
 
     return
     
