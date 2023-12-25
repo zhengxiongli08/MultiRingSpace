@@ -6,12 +6,12 @@ import shutil
 import subprocess
 import multiprocessing
 from datetime import datetime
-from evaluate import evaluate
 from natsort import natsorted
 
 
 # Global constants
 GOLDCASE_PATH = "../BiopsyDatabase/WSI_100Cases"
+ARCHIVE_PATH = "../archive"
 EVALUATE_READY_PATH = "../archive/eva_ready"
 
 # Functions
@@ -21,7 +21,15 @@ def my_run(command):
     return
 
 def main():
-    # Parameters for registration    
+    # Clean up the eva_ready directory
+    if os.path.exists(EVALUATE_READY_PATH):
+        shutil.rmtree(EVALUATE_READY_PATH)
+    os.mkdir(EVALUATE_READY_PATH)
+    # Get path for long-term storage
+    current_time = datetime.now()
+    formatted_time = current_time.strftime("%Y%m%d-%H%M%S")
+    des_path = os.path.join(ARCHIVE_PATH, formatted_time)
+    # Commands for registration    
     commands_reg = list()
     commands_eva = list()
     
@@ -53,6 +61,8 @@ def main():
         pool.map_async(my_run, commands_eva)
         pool.close()
         pool.join()
+    
+    shutil.copytree(EVALUATE_READY_PATH, des_path)
     
     return
 
