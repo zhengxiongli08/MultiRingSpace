@@ -139,7 +139,7 @@ def get_conv_list(img: np.ndarray,
     Returns:
         List of convolution results
     """
-    ti.init(arch=ti.gpu)
+    ti.init(arch=ti.cpu)
     conv_list = list()
     for mask in mask_list:
         img_conv = convolve(img, mask)
@@ -166,6 +166,8 @@ def get_diff_list(conv_list: list) -> list:
     return diff_list
 
 if __name__ == "__main__":
+    import os
+    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
     mask_list = get_mask_list(5, 30, 7)
     img = np.random.randint(0, 255, (1000, 1000)).astype(np.uint8)
     conv_list = get_conv_list(img, mask_list)
