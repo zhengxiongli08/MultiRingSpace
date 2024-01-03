@@ -13,32 +13,34 @@ from numba import njit, prange
 # Functions
 @njit
 def is_max_value(part):
+    kp_r = int((part.shape[0] - 1) / 2)
     max_value = np.max(part)
-    if (part[1, 1] == max_value) and (np.count_nonzero(part == max_value) == 1):
+    if (part[kp_r, kp_r] == max_value) and (np.count_nonzero(part == max_value) == 1):
         return True
     return False
 
 @njit
 def is_min_value(part):
+    kp_r = int((part.shape[0] - 1) / 2)
     min_value = np.min(part)
-    if (part[1, 1] == min_value) and (np.count_nonzero(part == min_value) == 1):
+    if (part[kp_r, kp_r] == min_value) and (np.count_nonzero(part == min_value) == 1):
         return True
     return False
 
 @njit(parallel=True)
-def _get_kps(img_up, img_self, img_down) -> np.ndarray:
+def _get_kps(img_up, img_self, img_down, kp_r) -> np.ndarray:
     """
     Get a keypoint map for 3 layes, up, down and self
     """
     img_height, img_width = img_self.shape[:2]
     result = np.zeros_like(img_self).astype(np.int32)
     # Traverse those pixels one by one
-    for i in prange(1, img_height):
-        for j in prange(1, img_width):
+    for i in prange(kp_r, img_height+1-kp_r):
+        for j in prange(kp_r, img_width+1-kp_r):
             # Extract 3 part with a size of 3x3
-            img_up_part = img_up[i-1:i+2, j-1:j+2]
-            img_down_part = img_down[i-1:i+2, j-1:j+2]
-            img_self_part = img_self[i-1:i+2, j-1:j+2]
+            img_up_part = img_up[i-kp_r:i+1+kp_r, j-kp_r:j+1+kp_r]
+            img_down_part = img_down[i-kp_r:i+1+kp_r, j-kp_r:j+1+kp_r]
+            img_self_part = img_self[i-kp_r:i+1+kp_r, j-kp_r:j+1+kp_r]
             # Get the max and min values of up level and down level
             img_up_max = np.max(img_up_part)
             img_up_min = np.min(img_up_part)
@@ -69,7 +71,7 @@ def map2array(kp_map):
 
     return coordinates
 
-def get_kps(diff_list):
+def get_kps(diff_list, kp_r):
     """
     Get keypoint map from differential pyramid, 
     then transform it into a series of numpy array, 
@@ -84,7 +86,7 @@ def get_kps(diff_list):
         img_up = diff_list[i + 1]
         img_down = diff_list[i - 1]
         
-        kps = _get_kps(img_self, img_up, img_down)
+        kps = _get_kps(img_self, img_up, img_down, kp_r)
         kps = map2array(kps)
         kps_list.append(kps)
     # Combine vertically

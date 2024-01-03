@@ -10,6 +10,7 @@ import numpy as np
 import argparse
 import shutil
 import json
+import matplotlib.pyplot as plt
 from natsort import natsorted
 from logger import Logger
 from preprocess import read_slide, monomer_preprocess, polysome_preprocess
@@ -28,10 +29,11 @@ def get_params():
     parser.add_argument("--group_path", type=str, default="../BiopsyDatabase/WSI_100Cases/GIST-1-group3", help="group's path")
     parser.add_argument("--result_path", type=str, default="../result", help="result's folder")
     parser.add_argument("--slide_type", type=str, default="monomer", help="slide type, monomer/polysome")
-    parser.add_argument("--radius_min", type=int, default=5, help="minimum radius of ring")
-    parser.add_argument("--radius_max", type=int, default=30, help="maximum radius of ring")
-    parser.add_argument("--thickness", type=int, default=7, help="thickness of the ring")
+    parser.add_argument("--radius_min", type=int, default=1, help="minimum radius of ring")
+    parser.add_argument("--radius_max", type=int, default=5, help="maximum radius of ring")
+    parser.add_argument("--thickness", type=int, default=3, help="thickness of the ring")
     parser.add_argument("--resize_height", type=int, default=1024, help="image's height after resize")
+    parser.add_argument("--keypoint_radius", type=int, default=1, help="radius of keypoints detect region")
     # Initialize parser
     args = parser.parse_args()
     # Extract database path
@@ -80,6 +82,7 @@ def get_params():
     params["radius_max"] = args.radius_max
     params["thickness"] = args.thickness
     params["resize_height"] = args.resize_height
+    params["keypoint_radius"] = args.keypoint_radius
     params["slide_1_path"] = slide_1_path
     params["slide_2_path"] = slide_2_path
     params["slide_1_name"] = slides_list[0]
@@ -106,6 +109,7 @@ def compute(params, myLogger):
     thickness = params["thickness"]
     result_path = params["result_path"]
     resize_height = params["resize_height"]
+    keypoint_radius = params["keypoint_radius"]
     
     # Begin to compute keypoints and eigenvectors
     myLogger.print(f"Start processing for slide {slide_num}.")
@@ -132,7 +136,7 @@ def compute(params, myLogger):
     myLogger.print("Get differential list successfully!")
     
     # Get keypoints
-    kps = get_kps(diff_list)
+    kps = get_kps(diff_list, keypoint_radius)
     myLogger.print("Get keypoints successfully!")
     myLogger.print(f"Total keypoints number for slide {slide_num}: {kps.shape[0]}")
     
@@ -160,8 +164,11 @@ def compute(params, myLogger):
     # Save differntial images
     for i in range(0, len(diff_list)):
         diff_img_path = os.path.join(slide_result_path, f"img_diff_{i}.png")
-        temp = cv.applyColorMap(diff_list[i], cv.COLORMAP_WINTER)
-        cv.imwrite(diff_img_path, temp)
+        # temp = cv.applyColorMap(diff_list[i], cv.COLORMAP_WINTER)
+        cv.imwrite(diff_img_path, diff_list[i])
+        # print(diff_list[i])
+        plt.imshow(diff_list[i], "gray")
+        # plt.show()
     # Save keypoints map
     img_color = get_color_keypoint_img(img_nobg, kps)
     kp_color_path = os.path.join(slide_result_path, f"img_kp_color.png")

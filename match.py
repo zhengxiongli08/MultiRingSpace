@@ -163,7 +163,6 @@ def GeometricConsistency(KeypointA, KeypointB):
     myLogger.print(f'全局迭代信息: 共计迭代{Loop}次,耗时{E_End-E_Start:.3f}秒，从暴力匹配中，迭代产生{Num_GoodKP}对关键点')
     return KeypointA, KeypointB, Aff_M
 
-
 def GeometricConsistencyForRegion(KeypointA, KeypointB):
     """
         基于几何差异，迭代出几何一致的成对的关键
@@ -388,7 +387,8 @@ def Matching(KeypointA, EncodeA, KeypointB, EncodeB, result_path="../result"):
     # 显示最终的匹配结果
     # draw_bk.PointLine(MatchResultA, MatchResultB, SizeKps=10, LineWidth=1.5, path="final.png")
     #
-    return MatchResultA, MatchResultB
+    # return MatchResultA, MatchResultB
+    return KeypointA_GC, KeypointB_GC
 
 if __name__ == "__main__":
     import pickle
