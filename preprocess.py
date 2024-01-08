@@ -2,7 +2,6 @@
 # This program is used to remove background for monomer slides and polysome slides
 
 import rembg
-import numpy as np
 import cv2 as cv
 import numba
 from skimage import io
@@ -24,7 +23,7 @@ def read_slide(slide_path, resize_height):
 
     return img
 
-def monomer_preprocess(img_origin):
+def monomer_preprocess(img_origin, slide_type):
     """
     Read a monomer slide, and preprocess it.
     Including remove background and transform it into a gray scale image.
@@ -38,7 +37,14 @@ def monomer_preprocess(img_origin):
     # After processing using rembg, there are 4 channels, we only need 3
     channels = cv.split(temp)
     img_nobg = cv.cvtColor(cv.merge(channels[:3]), cv.COLOR_RGB2BGR)
-    img_nobg_gray = cv.cvtColor(img_nobg, cv.COLOR_BGR2GRAY)
+    # Transform it into gray scale based on the stain type
+    if slide_type == "HE":
+        clahe = cv.createCLAHE(clipLimit=2, tileGridSize=(8, 8))
+    elif slide_type == "IHC":
+        clahe = cv.createCLAHE(clipLimit=4, tileGridSize=(8, 8))
+    else:
+        raise Exception("Stain type not supported.")
+    img_nobg_gray = clahe.apply(img_nobg)
     
     return img_origin_gray, img_nobg, img_nobg_gray
 
