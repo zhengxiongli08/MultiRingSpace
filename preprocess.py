@@ -23,7 +23,7 @@ def read_slide(slide_path, resize_height):
 
     return img
 
-def monomer_preprocess(img_origin, slide_type):
+def monomer_preprocess(img_origin, stain_type):
     """
     Read a monomer slide, and preprocess it.
     Including remove background and transform it into a gray scale image.
@@ -38,9 +38,9 @@ def monomer_preprocess(img_origin, slide_type):
     channels = cv.split(temp)
     img_nobg = cv.cvtColor(cv.merge(channels[:3]), cv.COLOR_RGB2BGR)
     # Transform it into gray scale based on the stain type
-    if slide_type == "HE":
+    if stain_type == "HE":
         clahe = cv.createCLAHE(clipLimit=2, tileGridSize=(8, 8))
-    elif slide_type == "IHC":
+    elif stain_type == "IHC":
         clahe = cv.createCLAHE(clipLimit=4, tileGridSize=(8, 8))
     else:
         raise Exception("Stain type not supported.")

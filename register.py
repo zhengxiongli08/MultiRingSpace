@@ -34,6 +34,7 @@ def get_params():
     parser.add_argument("--thickness", type=int, default=3, help="thickness of the ring")
     parser.add_argument("--resize_height", type=int, default=1024, help="image's height after resize")
     parser.add_argument("--keypoint_radius", type=int, default=1, help="radius of keypoints detect region")
+    parser.add_argument("--stain_type", type=str, default="HE", help="stain type of the slide")
     # Initialize parser
     args = parser.parse_args()
     # Extract database path
@@ -43,17 +44,18 @@ def get_params():
     # Extract magnification
     if "magnification" in group_name:
         magnification = "40x"
-        file_type = ".npy"
     else:
         magnification = "20x"
-        file_type = ".svs"
     # Extract slide information
     slides_list = list()
     for file_name in natsorted(os.listdir(args.group_path)):
-        if file_name.endswith(file_type):
+        if file_name.endswith(".svs"):
             slides_list.append(file_name)
     if len(slides_list) != 2:
         raise Exception(f"{len(slides_list)} slides detected, which should be 2")
+    # HE slide should be the first one, if it exists
+    if "HE" in slides_list[1]:
+        slides_list[0], slides_list[1] = slides_list[1], slides_list[0]
     slide_1_path = os.path.join(args.group_path, slides_list[0])
     slide_2_path = os.path.join(args.group_path, slides_list[1])
     # Extract slide landmarks information
@@ -83,6 +85,7 @@ def get_params():
     params["thickness"] = args.thickness
     params["resize_height"] = args.resize_height
     params["keypoint_radius"] = args.keypoint_radius
+    params["stain_type"] = args.stain_type
     params["slide_1_path"] = slide_1_path
     params["slide_2_path"] = slide_2_path
     params["slide_1_name"] = slides_list[0]
@@ -110,6 +113,7 @@ def compute(params, myLogger):
     result_path = params["result_path"]
     resize_height = params["resize_height"]
     keypoint_radius = params["keypoint_radius"]
+    stain_type = params["stain_type"]
     
     # Begin to compute keypoints and eigenvectors
     myLogger.print(f"Start processing for slide {slide_num}.")
@@ -117,9 +121,9 @@ def compute(params, myLogger):
     img_origin = read_slide(slide_path, resize_height)
     myLogger.print(f"Read slide {params[f'slide_{slide_num}_name']} done.")
     if (slide_type == "monomer"):
-        img_origin_gray, img_nobg, img_nobg_gray = monomer_preprocess(img_origin)
+        img_origin_gray, img_nobg, img_nobg_gray = monomer_preprocess(img_origin, stain_type)
     elif (slide_type == "polysome"):
-        img_origin_gray, img_nobg, img_nobg_gray = polysome_preprocess(img_origin)
+        img_origin_gray, img_nobg, img_nobg_gray = polysome_preprocess(img_origin, stain_type)
     myLogger.print("Preprocess completed successfully!")
     myLogger.print(f"Image's size: {img_nobg_gray.shape}")
             
