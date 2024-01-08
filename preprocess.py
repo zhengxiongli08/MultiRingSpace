@@ -5,54 +5,40 @@ import rembg
 import numpy as np
 import cv2 as cv
 import numba
-import pyvips
-from PIL import Image
+from skimage import io
 from numba import njit, prange
 
 
-def convert(img):
-    """
-    Function:
-        Convert image format from RGB into BGR in place
-    
-    Since openslide read slides using PIL package, 
-    image's channels order is "RGB". 
-    But opencv image's channel order is "BGR". 
-    """
-    img[:, :, 2], img[:, :, 0] = img[:, :, 0], img[:, :, 2]
-    
-    return 
-
 def read_slide(slide_path, resize_height):
     """
-    Open slide using pyvips
+    Open slide using skimage
     """
-    try:
-        img = pyvips.Image.new_from_file(slide_path, level=0)
-        img = np.asarray(img)[:, :, :3]
-        convert(img)
-    except:
-        img = np.load(slide_path, mmap_mode="r")
+    data = io.imread(slide_path)
     # Resize the image
-    height, width = img.shape[:2]
+    height, width = data.shape[:2]
     new_height = resize_height
     new_width = int((width / height) * new_height)
-    result = cv.resize(img, (new_width, new_height))
+    result = cv.resize(data, (new_width, new_height), interpolation=cv.INTER_AREA)  # Attention: method can be changed
+    # Convert the color
+    img = cv.cvtColor(result, cv.COLOR_RGB2BGR)
 
-    return result
+    return img
 
 def monomer_preprocess(img_origin):
     """
     Read a monomer slide, and preprocess it.
     Including remove background and transform it into a gray scale image.
+    Input and outpur channels follow opencv rules (BGR)
     """
     # Get gray scale for image_origin
     img_origin_gray = cv.cvtColor(img_origin, cv.COLOR_BGR2GRAY)
-    temp = rembg.remove(img_origin)
-    # After processing using rembg, there are 4 channels, we only need 3 (BGR)
+    # Remove the background
+    img_rgb = cv.cvtColor(img_origin, cv.COLOR_BGR2RGB)
+    temp = rembg.remove(img_rgb)
+    # After processing using rembg, there are 4 channels, we only need 3
     channels = cv.split(temp)
-    img_nobg = cv.merge(channels[:3])
-    img_nobg_gray = cv.cvtColor(temp, cv.COLOR_BGR2GRAY)
+    img_nobg = cv.cvtColor(cv.merge(channels[:3]), cv.COLOR_RGB2BGR)
+    img_nobg_gray = cv.cvtColor(img_nobg, cv.COLOR_BGR2GRAY)
     
     return img_origin_gray, img_nobg, img_nobg_gray
 
@@ -88,10 +74,8 @@ def polysome_preprocess(img_origin):
     """
     # Get gray scale for image_origin
     img_origin_gray = cv.cvtColor(img_origin, cv.COLOR_BGR2GRAY)
-    
     # Remove background
     img_nobg = bg_remove(img_origin)
-    
     # Transform it into gray scale
     img_nobg_gray = cv.cvtColor(img_nobg, cv.COLOR_BGR2GRAY)
                 
@@ -101,10 +85,11 @@ if __name__ == "__main__":
     import os
     test_path = "../BiopsyDatabase/WSI_100Cases/BC-23-40magnification-group1"
     for file in os.listdir(test_path):
-        if file.endswith(".npy"):
-            slide_path = os.path.join(test_path, file)
-            img = read_slide(slide_path, 1024)
-            print(img.shape)
+        if not file.endswith(".svs"):
+            continue
+        slide_path = os.path.join(test_path, file)
+        img = read_slide(slide_path, 1024)
+        print(img.shape)
 
     print("Program finished.")
     
