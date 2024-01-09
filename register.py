@@ -3,8 +3,8 @@
 
 # Multiple scale ring space algorithm
 
+import sys
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 import cv2 as cv
 import numpy as np
 import argparse
@@ -32,8 +32,8 @@ def get_params():
     parser.add_argument("--conv_radius_min", type=int, default=1, help="minimum radius of ring for convolution")
     parser.add_argument("--conv_radius_max", type=int, default=5, help="maximum radius of ring for convolution")
     parser.add_argument("--eigen_radius_min", type=int, default=100, help="minimum radius of ring for descriptors")
-    parser.add_argument("--eigen_radius_max", type=int, default=200, help="maximum radius of ring for descriptors")
-    parser.add_argument("--thickness", type=int, default=3, help="thickness of the ring")
+    parser.add_argument("--eigen_radius_max", type=int, default=180, help="maximum radius of ring for descriptors")
+    parser.add_argument("--thickness", type=int, default=10, help="thickness of the ring")
     parser.add_argument("--overlap_factor", type=int, default=3, help="overlap factor for multiple rings")
     parser.add_argument("--resize_height", type=int, default=1024, help="image's height after resize")
     parser.add_argument("--keypoint_radius", type=int, default=1, help="radius of keypoints detect region")
