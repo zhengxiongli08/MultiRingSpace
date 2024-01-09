@@ -29,8 +29,6 @@ def monomer_preprocess(img_origin, stain_type):
     Including remove background and transform it into a gray scale image.
     Input and outpur channels follow opencv rules (BGR)
     """
-    # Get gray scale for image_origin
-    img_origin_gray = cv.cvtColor(img_origin, cv.COLOR_BGR2GRAY)
     # Remove the background
     img_rgb = cv.cvtColor(img_origin, cv.COLOR_BGR2RGB)
     temp = rembg.remove(img_rgb)
@@ -46,7 +44,10 @@ def monomer_preprocess(img_origin, stain_type):
         raise Exception("Stain type not supported.")
     img_nobg_gray = cv.cvtColor(img_nobg, cv.COLOR_BGR2GRAY)
     img_nobg_gray = clahe.apply(img_nobg_gray)
-    
+    # Get gray scale for image_origin
+    img_origin_gray = cv.cvtColor(img_origin, cv.COLOR_BGR2GRAY)
+    img_origin_gray = clahe.apply(img_origin_gray)
+
     return img_origin_gray, img_nobg, img_nobg_gray
 
 @njit(parallel=True)
