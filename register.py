@@ -180,9 +180,6 @@ def compute(params, myLogger):
         diff_img_path = os.path.join(slide_result_path, f"img_diff_{i}.png")
         # temp = cv.applyColorMap(diff_list[i], cv.COLORMAP_WINTER)
         cv.imwrite(diff_img_path, diff_list[i])
-        # print(diff_list[i])
-        plt.imshow(diff_list[i], "gray")
-        # plt.show()
     # Save keypoints map
     img_color = get_color_keypoint_img(img_nobg, kps)
     kp_color_path = os.path.join(slide_result_path, f"img_kp_color.png")
