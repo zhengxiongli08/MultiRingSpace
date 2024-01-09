@@ -44,7 +44,8 @@ def monomer_preprocess(img_origin, stain_type):
         clahe = cv.createCLAHE(clipLimit=4, tileGridSize=(8, 8))
     else:
         raise Exception("Stain type not supported.")
-    img_nobg_gray = clahe.apply(img_nobg)
+    img_nobg_gray = cv.cvtColor(img_nobg, cv.COLOR_BGR2GRAY)
+    img_nobg_gray = clahe.apply(img_nobg_gray)
     
     return img_origin_gray, img_nobg, img_nobg_gray
 

@@ -4,7 +4,7 @@
 # Multiple scale ring space algorithm
 
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 import cv2 as cv
 import numpy as np
 import argparse
@@ -26,12 +26,15 @@ def get_params():
     Receive parameters from terminal
     """
     parser = argparse.ArgumentParser(description="Indicate parameters, use --help for help.")
-    parser.add_argument("--group_path", type=str, default="../BiopsyDatabase/WSI_100Cases/GIST-1-group3", help="group's path")
+    parser.add_argument("--group_path", type=str, default="../BiopsyDatabase/WSI_100Cases/GIST-1-group1", help="group's path")
     parser.add_argument("--result_path", type=str, default="../result", help="result's folder")
     parser.add_argument("--slide_type", type=str, default="monomer", help="slide type, monomer/polysome")
-    parser.add_argument("--radius_min", type=int, default=1, help="minimum radius of ring")
-    parser.add_argument("--radius_max", type=int, default=5, help="maximum radius of ring")
+    parser.add_argument("--conv_radius_min", type=int, default=1, help="minimum radius of ring for convolution")
+    parser.add_argument("--conv_radius_max", type=int, default=5, help="maximum radius of ring for convolution")
+    parser.add_argument("--eigen_radius_min", type=int, default=100, help="minimum radius of ring for descriptors")
+    parser.add_argument("--eigen_radius_max", type=int, default=200, help="maximum radius of ring for descriptors")
     parser.add_argument("--thickness", type=int, default=3, help="thickness of the ring")
+    parser.add_argument("--overlap_factor", type=int, default=3, help="overlap factor for multiple rings")
     parser.add_argument("--resize_height", type=int, default=1024, help="image's height after resize")
     parser.add_argument("--keypoint_radius", type=int, default=1, help="radius of keypoints detect region")
     parser.add_argument("--stain_type", type=str, default="HE", help="stain type of the slide")
@@ -80,9 +83,12 @@ def get_params():
     params["group_name"] = group_name
     params["result_path"] = args.result_path
     params["slide_type"] = args.slide_type
-    params["radius_min"] = args.radius_min
-    params["radius_max"] = args.radius_max
+    params["conv_radius_min"] = args.conv_radius_min
+    params["conv_radius_max"] = args.conv_radius_max
+    params["eigen_radius_min"] = args.eigen_radius_min
+    params["eigen_radius_max"] = args.eigen_radius_max
     params["thickness"] = args.thickness
+    params["overlap_factor"] = args.overlap_factor
     params["resize_height"] = args.resize_height
     params["keypoint_radius"] = args.keypoint_radius
     params["stain_type"] = args.stain_type
@@ -107,9 +113,12 @@ def compute(params, myLogger):
         raise Exception("Invalid slide_num")
 
     slide_type = params["slide_type"]
-    radius_min = params["radius_min"]
-    radius_max = params["radius_max"]
+    conv_radius_min = params["conv_radius_min"]
+    conv_radius_max = params["conv_radius_max"]
+    eigen_radius_min = params["eigen_radius_min"]
+    eigen_radius_max = params["eigen_radius_max"]
     thickness = params["thickness"]
+    overlap_factor = params["overlap_factor"]
     result_path = params["result_path"]
     resize_height = params["resize_height"]
     keypoint_radius = params["keypoint_radius"]
@@ -128,11 +137,11 @@ def compute(params, myLogger):
     myLogger.print(f"Image's size: {img_nobg_gray.shape}")
             
     # Get list of convolution kernels
-    mask_list = get_mask_list(radius_min, radius_max, thickness)
-    myLogger.print("Get mask list successfully!")
+    conv_mask_list = get_mask_list(conv_radius_min, conv_radius_max)
+    myLogger.print("Get mask list for convolution successfully!")
     
     # Get convolution pyramid
-    conv_list = get_conv_list(img_nobg_gray, mask_list)
+    conv_list = get_conv_list(img_nobg_gray, conv_mask_list)
     myLogger.print("Get convolution list successfully!")
     
     # Get differential pyramid
@@ -145,7 +154,8 @@ def compute(params, myLogger):
     myLogger.print(f"Total keypoints number for slide {slide_num}: {kps.shape[0]}")
     
     # Get eigenvectors
-    eigens = get_eigens(img_origin_gray, kps, mask_list)
+    eigen_mask_list = get_mask_list(eigen_radius_min, eigen_radius_max, thickness, overlap_factor)
+    eigens = get_eigens(img_origin_gray, kps, eigen_mask_list)
     myLogger.print("Get eigen vectors successfully!")
     myLogger.print(f"Eigen vectors' shape for slide {slide_num}: {eigens.shape}")
     

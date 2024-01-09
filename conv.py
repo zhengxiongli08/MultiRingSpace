@@ -80,6 +80,7 @@ def convolve(img: np.ndarray,
 
     return result
 
+@njit
 def build_ring(radius: int, thickness: int) -> np.ndarray:
     """
     Function:
@@ -90,7 +91,7 @@ def build_ring(radius: int, thickness: int) -> np.ndarray:
     Returns:
         Convolution kernel matrix
     """
-    width = 2 * (radius + thickness) + 1
+    width = 2 * (radius + thickness - 1) + 1
     mask = np.zeros((width, width)).astype(np.float32)
     center = (width - 1) / 2
     count = 0
@@ -98,7 +99,7 @@ def build_ring(radius: int, thickness: int) -> np.ndarray:
     for i in range(0, width):
         for j in range(0, width):
             distance = np.sqrt((i-center)**2 + (j-center)**2)
-            if (distance <= radius + thickness and distance > radius):
+            if (distance <= radius+thickness-1) and (distance > radius-1):
                 mask[i,j] = 1
                 count = count + 1
     mask = mask / count
@@ -107,7 +108,8 @@ def build_ring(radius: int, thickness: int) -> np.ndarray:
 
 def get_mask_list(radius_min: int, 
                   radius_max: int, 
-                  thickness: int) -> list:
+                  thickness: int=1,
+                  overlap_factor: int=3) -> list:
     """
     Function:
         Get list of convolution list, 
@@ -121,9 +123,11 @@ def get_mask_list(radius_min: int,
         List of convolution kernel
     """
     result_list = list()
-    step = thickness // 3
-    for i in range(radius_min, radius_max+1, step):
-        mask = build_ring(i, thickness)
+    step = thickness // overlap_factor
+    if step == 0:
+        step = 1
+    for radius in range(radius_min, radius_max+1, step):
+        mask = build_ring(radius, thickness)
         result_list.append(mask)
     
     return result_list
@@ -139,7 +143,7 @@ def get_conv_list(img: np.ndarray,
     Returns:
         List of convolution results
     """
-    ti.init(arch=ti.cpu)
+    ti.init(arch=ti.gpu)
     conv_list = list()
     for mask in mask_list:
         img_conv = convolve(img, mask)
@@ -167,8 +171,8 @@ def get_diff_list(conv_list: list) -> list:
 
 if __name__ == "__main__":
     import os
-    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
-    mask_list = get_mask_list(5, 30, 7)
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+    mask_list = get_mask_list(100, 200)
     img = np.random.randint(0, 255, (1000, 1000)).astype(np.uint8)
     conv_list = get_conv_list(img, mask_list)
     

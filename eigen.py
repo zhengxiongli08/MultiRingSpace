@@ -32,6 +32,7 @@ def local_conv(src, mask, coor_h, coor_w):
     
     return result
     
+@njit(parallel=True)
 def get_conv_eigen(img, kps, mask):
     """
     Warp for _get_conv_eigen.
@@ -41,8 +42,7 @@ def get_conv_eigen(img, kps, mask):
     # Main part
     kps_length = kps.shape[0]
     result = np.zeros(kps_length)
-    # _get_conv_eigen(img, kps, mask, result)
-    for i in range(0, kps_length):
+    for i in prange(0, kps_length):
         coor_h, coor_w = kps[i, 0], kps[i, 1]
         result[i] = local_conv(img, mask, coor_h, coor_w)
 
