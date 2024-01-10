@@ -12,12 +12,13 @@ import shutil
 import json
 import matplotlib.pyplot as plt
 from natsort import natsorted
+from concurrent.futures import ProcessPoolExecutor
 from logger import Logger
 from preprocess import read_slide, monomer_preprocess, polysome_preprocess
 from conv import get_mask_list, get_conv_list, get_diff_list
 from keypoint import get_kps, get_color_keypoint_img
 from eigen import get_eigens
-from match import Matching
+from match import Matching_TwoMapping
 
 
 # Functions
@@ -35,8 +36,9 @@ def get_params():
     parser.add_argument("--eigen_radius_max", type=int, default=180, help="maximum radius of ring for descriptors")
     parser.add_argument("--thickness", type=int, default=10, help="thickness of the ring")
     parser.add_argument("--overlap_factor", type=int, default=3, help="overlap factor for multiple rings")
-    parser.add_argument("--resize_height", type=int, default=1024, help="image's height after resize")
-    parser.add_argument("--keypoint_radius", type=int, default=1, help="radius of keypoints detect region")
+    parser.add_argument("--resize_height_large", type=int, default=1024, help="large image's height after resize")
+    parser.add_argument("--resize_height_small", type=int, default=128, help="small image's height after resize")
+    parser.add_argument("--keypoint_radius", type=int, default=2, help="radius of keypoints detect region")
     parser.add_argument("--stain_type", type=str, default="HE", help="stain type of the slide")
     # Initialize parser
     args = parser.parse_args()
@@ -89,7 +91,8 @@ def get_params():
     params["eigen_radius_max"] = args.eigen_radius_max
     params["thickness"] = args.thickness
     params["overlap_factor"] = args.overlap_factor
-    params["resize_height"] = args.resize_height
+    params["resize_height_large"] = args.resize_height_large
+    params["resize_height_small"] = args.resize_height_small
     params["keypoint_radius"] = args.keypoint_radius
     params["stain_type"] = args.stain_type
     params["slide_1_path"] = slide_1_path
@@ -102,16 +105,8 @@ def get_params():
     
     return params
 
-def compute(params, myLogger):
+def compute(img_origin, params, myLogger, slide_num):
     # Get necessary information
-    slide_num = params["slide_num"]
-    if (slide_num == 1):
-        slide_path = params["slide_1_path"]
-    elif (slide_num == 2):
-        slide_path = params["slide_2_path"]
-    else:
-        raise Exception("Invalid slide_num")
-
     slide_type = params["slide_type"]
     conv_radius_min = params["conv_radius_min"]
     conv_radius_max = params["conv_radius_max"]
@@ -120,22 +115,21 @@ def compute(params, myLogger):
     thickness = params["thickness"]
     overlap_factor = params["overlap_factor"]
     result_path = params["result_path"]
-    resize_height = params["resize_height"]
     keypoint_radius = params["keypoint_radius"]
     stain_type = params["stain_type"]
     
-    # Begin to compute keypoints and eigenvectors
-    myLogger.print(f"Start processing for slide {slide_num}.")
-    # Read image and preprocess it
-    img_origin = read_slide(slide_path, resize_height)
-    myLogger.print(f"Read slide {params[f'slide_{slide_num}_name']} done.")
+    # Begin to compute keypoints and eigen vectors
+    myLogger.print(f"Start processing for {stain_type} slide.")
+    # Start preprocess
     if (slide_type == "monomer"):
         img_origin_gray, img_nobg, img_nobg_gray = monomer_preprocess(img_origin, stain_type)
     elif (slide_type == "polysome"):
         img_origin_gray, img_nobg, img_nobg_gray = polysome_preprocess(img_origin, stain_type)
-    myLogger.print("Preprocess completed successfully!")
+    else:
+        raise Exception("Slide type not supported.")
+    myLogger.print("Preprocess done.")
     myLogger.print(f"Image's size: {img_nobg_gray.shape}")
-            
+    
     # Get list of convolution kernels
     conv_mask_list = get_mask_list(conv_radius_min, conv_radius_max)
     myLogger.print("Get mask list for convolution successfully!")
@@ -151,13 +145,13 @@ def compute(params, myLogger):
     # Get keypoints
     kps = get_kps(diff_list, keypoint_radius)
     myLogger.print("Get keypoints successfully!")
-    myLogger.print(f"Total keypoints number for slide {slide_num}: {kps.shape[0]}")
+    myLogger.print(f"Total keypoints number for {stain_type} slide: {kps.shape[0]}")
     
     # Get eigenvectors
     eigen_mask_list = get_mask_list(eigen_radius_min, eigen_radius_max, thickness, overlap_factor)
     eigens = get_eigens(img_origin_gray, kps, eigen_mask_list)
     myLogger.print("Get eigen vectors successfully!")
-    myLogger.print(f"Eigen vectors' shape for slide {slide_num}: {eigens.shape}")
+    myLogger.print(f"Eigen vectors' shape for {stain_type} slide: {eigens.shape}")
     
     # Save results
     slide_result_path = os.path.join(result_path, f"slide-{slide_num}")
@@ -197,23 +191,48 @@ def register():
     result_path = params["result_path"]
     myLogger = Logger(result_path)
     myLogger.print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-    myLogger.print(f"Start image registration using Multiple Ring Space algorithm.")
+    myLogger.print(f"Start image registration using Multiple Scale Ring Space Algorithm.")
     myLogger.print("{:<20} {}".format("Parameter", "Value"))
     for i in params:
         myLogger.print("{:<20} {}".format(i, params[i]))
     myLogger.print()
     
     # Start processing
+    # Get necessary parameters
+    slide_1_path = params["slide_1_path"]
+    slide_2_path = params["slide_2_path"]
+    resize_h_l = params["resize_height_large"]
+    resize_h_s = params["resize_height_small"]
+    # Read both slides
+    with ProcessPoolExecutor(max_workers=2) as executor:
+        future_1 = executor.submit(read_slide, *(slide_1_path, resize_h_l, resize_h_s))
+        future_2 = executor.submit(read_slide, *(slide_2_path, resize_h_l, resize_h_s))
+        img_origin_1_large, img_origin_1_small = future_1.result()
+        img_origin_2_large, img_origin_2_small = future_2.result()
+        myLogger.print("Read slides done.")
+    
     # Process for slide 1 & 2
-    params_1 = params.copy()
-    params_2 = params.copy()
-    params_1["slide_num"] = 1
-    params_2["slide_num"] = 2
-    kps_1, eigens_1 = compute(params_1, myLogger)
-    kps_2, eigens_2 = compute(params_2, myLogger)
+    kps_1_large, eigens_1_large = compute(img_origin_1_large, params, myLogger, 1)
+    kps_2_large, eigens_2_large = compute(img_origin_2_large, params, myLogger, 2)
+    
+    params["eigen_radius_max"] = int(params["eigen_radius_max"] * (resize_h_s / resize_h_l))
+    params["eigen_radius_min"] = int(params["eigen_radius_max"] * (resize_h_s / resize_h_l))
+    params["keypoint_radius"] = 1
+    
+    kps_1_small, eigens_1_small = compute(img_origin_1_small, params, myLogger, 3)
+    kps_2_small, eigens_2_small = compute(img_origin_2_small, params, myLogger, 4)
     
     # Match them
-    match_kps_1, match_kps_2 = Matching(kps_1, eigens_1, kps_2, eigens_2, result_path)
+    myLogger.print("Matching...")
+    _, _, _, _, match_kps_1, match_kps_2 = Matching_TwoMapping(kps_1_large, 
+                                                               eigens_1_large, 
+                                                               kps_2_large, 
+                                                               eigens_2_large, 
+                                                               (resize_h_l / resize_h_s), 
+                                                               kps_1_small, 
+                                                               eigens_1_small, 
+                                                               kps_2_small, 
+                                                               eigens_2_small)
     
     # Save data for evaluation
     eva_data_path = os.path.join(result_path, "eva_data")

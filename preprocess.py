@@ -3,25 +3,33 @@
 
 import rembg
 import cv2 as cv
-import numba
 from skimage import io
 from numba import njit, prange
 
 
-def read_slide(slide_path, resize_height):
+def my_resize(img, new_h):
+    """
+    Scale the image proportionally
+    """
+    height, width = img.shape[:2]
+    new_width = int((width / height) * new_h)
+    result = cv.resize(img, (new_width, new_h), interpolation=cv.INTER_AREA)  # Attention: method can be changed
+
+    return result
+    
+def read_slide(slide_path, resize_height_large, resize_height_small):
     """
     Open slide using skimage
     """
-    data = io.imread(slide_path)
+    slide = io.imread(slide_path)
     # Resize the image
-    height, width = data.shape[:2]
-    new_height = resize_height
-    new_width = int((width / height) * new_height)
-    result = cv.resize(data, (new_width, new_height), interpolation=cv.INTER_AREA)  # Attention: method can be changed
+    img_large = my_resize(slide, resize_height_large)
+    img_small = my_resize(slide, resize_height_small)
     # Convert the color
-    img = cv.cvtColor(result, cv.COLOR_RGB2BGR)
+    img_large = cv.cvtColor(img_large, cv.COLOR_RGB2BGR)
+    img_small = cv.cvtColor(img_small, cv.COLOR_RGB2BGR)
 
-    return img
+    return img_large, img_small
 
 def monomer_preprocess(img_origin, stain_type):
     """

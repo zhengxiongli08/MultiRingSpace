@@ -566,6 +566,17 @@ def Matching_TwoMapping(KeypointA_Origin, EncodeA_Origin, KeypointB_Origin, Enco
         实施三级映射匹配, 使用函数Matching_Origin()和Matching_Guide()实现
         第一级获得变换矩阵, 第二级根据第一级变换矩阵提升匹配结果, 第三级根据第二级变换矩阵匹配大尺寸图像, 最终获得精确匹配结果
     """
+    """
+    KeypointA_Origin：HE大图的关键点检测结果
+    EncodeA_Origin：HE大图的特征描述子
+    KeypointB_Origin：IHC大图的关键点检测结果
+    EncodeB_Origin：IHC大图的特征描述子
+    Magnification：大图与小图之间的缩放比例
+    KeypointA_Guide1：HE小图的关键点检测结果
+    EncodeA_Guide1：HE小图的特征描述子
+    KeypointB_Guide1：IHC小图的关键点检测结果
+    EncodeB_Guide1：IHC小图的特征描述子
+    """
     # 输入：
     # 参考Matching_Origin()和Matching_Guide()的解释
     # 输出：
@@ -582,42 +593,3 @@ def Matching_TwoMapping(KeypointA_Origin, EncodeA_Origin, KeypointB_Origin, Enco
     E_End = time.time()
     print(f'三级映射匹配: 总耗时{E_End - E_Start:.3f}秒')
     return ResultA_Origin, ResultB_Origin, ResultA_Guide2, ResultB_Guide2, MatchResultA, MatchResultB
-
-
-
-
-
-
-
-
-
-
-
-
-#
-#
-#
-if __name__ == "__main__":
-    pass
-
-
-
-
-"""
-# 语法：
-1、
-
-参数：
-输出：
-"""
-# .............................................................................#
-"""
-# 小知识：
-1、
-
-"""
-# .............................................................................#
-"""
-# 实施例：
-
-"""
