@@ -156,7 +156,7 @@ def evaluate():
     jsons_path_2 = params["landmarks_2_path"]
     slide_1_path = params["slide_1_path"]
     slide_2_path = params["slide_2_path"]
-    resize_height = params["resize_height"]
+    resize_height = params["resize_height_large"]
     magnification = params["magnification"]
     eva_data_path = os.path.join(result_path, "eva_data")
     kps_1_path = os.path.join(eva_data_path, "match_kps_1.npy")
@@ -178,19 +178,11 @@ def evaluate():
     myLogger = Logger(result_path)
     
     # Draw lines before affine transformation
-    img_combo_no_affine = np.hstack((img_1, img_2))
-    img_match_no_affine = draw_line(img_1, img_2, kps_1, kps_2)
-    img_match_no_affine_manual = draw_line(img_1, img_2, coords_1, coords_2, thickness=3)
+    img_combo = np.hstack((img_1, img_2))
+    img_match = draw_line(img_1, img_2, kps_1, kps_2, thickness=1)
+    img_match_manual = draw_line(img_1, img_2, coords_1, coords_2, thickness=3)
     # Do affine transformation
-    img_2_affine, kps_2_affine, affine_matrix = affine_transform(kps_1, kps_2, img_2)
-    # Draw lines after affine transformation
-    img_combo_affine = np.hstack((img_1, img_2_affine))
-    img_match_affine = draw_line(img_1, img_2_affine, kps_1, kps_2_affine)
-    # Do affine transformation for manual coordinates
-    coords_2_new = cv.transform(coords_2.reshape((-1, 1, 2)), affine_matrix)
-    coords_2_new = np.squeeze(coords_2_new, axis=1)
-    # Draw lines for manual coordinates
-    img_match_affine_manual = draw_line(img_1, img_2_affine, coords_1, coords_2_new)
+    _, _, affine_matrix = affine_transform(kps_1, kps_2, img_2)
     
     # Quantize
     pixel_error, um_error = quantize(coords_1, coords_2, affine_matrix, resize_factor_1, magnification)
@@ -201,19 +193,12 @@ def evaluate():
     eva_result_path = os.path.join(result_path, "eva_result")
     os.makedirs(eva_result_path, exist_ok=True)
     # Results before affine transformation
-    img_combo_no_affine_path = os.path.join(eva_result_path, "img_combo_no_affine.png")
-    img_match_no_affine_path = os.path.join(eva_result_path, "img_match_no_affine.png")
-    img_match_no_affine_manual_path = os.path.join(eva_result_path, "img_match_no_affine_manual.png")
-    cv.imwrite(img_combo_no_affine_path, img_combo_no_affine)
-    cv.imwrite(img_match_no_affine_path, img_match_no_affine)
-    cv.imwrite(img_match_no_affine_manual_path, img_match_no_affine_manual)
-    # Results afte affine transformation
-    img_combo_affine_path = os.path.join(eva_result_path, "img_combo_affine.png")
-    img_match_affine_path = os.path.join(eva_result_path, "img_match_affine.png")
-    img_match_affine_manual_path = os.path.join(eva_result_path, "img_match_affine_manual.png")
-    cv.imwrite(img_combo_affine_path, img_combo_affine)
-    cv.imwrite(img_match_affine_path, img_match_affine)
-    cv.imwrite(img_match_affine_manual_path, img_match_affine_manual)
+    img_combo_path = os.path.join(eva_result_path, "img_combo.png")
+    img_match_path = os.path.join(eva_result_path, "img_match.png")
+    img_match_manual_path = os.path.join(eva_result_path, "img_match_manual.png")
+    cv.imwrite(img_combo_path, img_combo)
+    cv.imwrite(img_match_path, img_match)
+    cv.imwrite(img_match_manual_path, img_match_manual)
     # Results of errors
     errors = {"pixel_error": pixel_error, "um_error": um_error}
     errors_path = os.path.join(eva_result_path, "errors.json")

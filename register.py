@@ -224,15 +224,15 @@ def register():
     
     # Match them
     myLogger.print("Matching...")
-    _, _, _, _, match_kps_1, match_kps_2 = Matching_TwoMapping(kps_1_large, 
-                                                               eigens_1_large, 
-                                                               kps_2_large, 
-                                                               eigens_2_large, 
-                                                               (resize_h_l / resize_h_s), 
-                                                               kps_1_small, 
+    _, _, _, _, match_kps_1, match_kps_2 = Matching_TwoMapping(kps_1_small, 
                                                                eigens_1_small, 
                                                                kps_2_small, 
-                                                               eigens_2_small)
+                                                               eigens_2_small, 
+                                                               (resize_h_l / resize_h_s), 
+                                                               kps_1_large, 
+                                                               eigens_1_large, 
+                                                               kps_2_large, 
+                                                               eigens_2_large)
     
     # Save data for evaluation
     eva_data_path = os.path.join(result_path, "eva_data")
