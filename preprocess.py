@@ -12,24 +12,20 @@ def my_resize(img, new_h):
     Scale the image proportionally
     """
     height, width = img.shape[:2]
-    new_width = int((width / height) * new_h)
-    result = cv.resize(img, (new_width, new_h), interpolation=cv.INTER_AREA)  # Attention: method can be changed
+    new_w = int((width / height) * new_h)
+    result = cv.resize(img, (new_w, new_h), interpolation=cv.INTER_AREA)  # Attention: method can be changed
 
     return result
     
-def read_slide(slide_path, resize_height_large, resize_height_small):
+def read_slide(slide_path):
     """
     Open slide using skimage
     """
     slide = io.imread(slide_path)
-    # Resize the image
-    img_large = my_resize(slide, resize_height_large)
-    img_small = my_resize(slide, resize_height_small)
     # Convert the color
-    img_large = cv.cvtColor(img_large, cv.COLOR_RGB2BGR)
-    img_small = cv.cvtColor(img_small, cv.COLOR_RGB2BGR)
+    img = cv.cvtColor(slide, cv.COLOR_RGB2BGR)
 
-    return img_large, img_small
+    return img
 
 def monomer_preprocess(img_origin, stain_type):
     """

@@ -9,7 +9,7 @@ import pyvips
 import argparse
 from logger import Logger
 from natsort import natsorted
-from draw import draw_line
+from draw import draw_line, my_hstack
 
 
 # Functions
@@ -178,7 +178,7 @@ def evaluate():
     myLogger = Logger(result_path)
     
     # Draw lines before affine transformation
-    img_combo = np.hstack((img_1, img_2))
+    img_combo = my_hstack(img_1, img_2)
     img_match = draw_line(img_1, img_2, kps_1, kps_2, thickness=1)
     img_match_manual = draw_line(img_1, img_2, coords_1, coords_2, thickness=3)
     # Do affine transformation

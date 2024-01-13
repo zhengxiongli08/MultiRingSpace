@@ -152,7 +152,7 @@ def get_conv_list(img: np.ndarray,
         
     return conv_list
 
-def get_diff_list(conv_list: list) -> list:
+def get_diff_list(conv_list: list, img_nobg_gray: np.ndarray) -> list:
     """
     Functions:
         Get differential pyramid from convolution pyramid
@@ -163,8 +163,9 @@ def get_diff_list(conv_list: list) -> list:
     """
     diff_list = list()
     depth = len(conv_list) - 1
-    for i in range(0, depth):
-        img_diff = conv_list[i + 1] - conv_list[i]
+    # for i in range(0, depth):
+    for i in range(0, len(conv_list)):
+        img_diff = np.abs(img_nobg_gray - conv_list[i])
         diff_list.append(img_diff)
         
     return diff_list

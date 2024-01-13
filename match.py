@@ -576,6 +576,7 @@ def Matching_TwoMapping(KeypointA_Origin, EncodeA_Origin, KeypointB_Origin, Enco
     EncodeA_Guide1：HE小图的特征描述子
     KeypointB_Guide1：IHC小图的关键点检测结果
     EncodeB_Guide1：IHC小图的特征描述子
+    （大图和小图全都反了）
     """
     # 输入：
     # 参考Matching_Origin()和Matching_Guide()的解释
