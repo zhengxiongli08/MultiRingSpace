@@ -7,6 +7,7 @@
 """
 功能：特征匹配算法。【粗匹配->几何一致性匹配->局部匹配->精匹配】
 """
+import sys
 import numpy as np
 import faiss
 import heapq
@@ -567,16 +568,15 @@ def Matching_TwoMapping(KeypointA_Origin, EncodeA_Origin, KeypointB_Origin, Enco
         第一级获得变换矩阵, 第二级根据第一级变换矩阵提升匹配结果, 第三级根据第二级变换矩阵匹配大尺寸图像, 最终获得精确匹配结果
     """
     """
-    KeypointA_Origin：HE大图的关键点检测结果
-    EncodeA_Origin：HE大图的特征描述子
-    KeypointB_Origin：IHC大图的关键点检测结果
-    EncodeB_Origin：IHC大图的特征描述子
+    KeypointA_Origin：HE小图的关键点检测结果
+    EncodeA_Origin：HE小图的特征描述子
+    KeypointB_Origin：IHC大小图的关键点检测结果
+    EncodeB_Origin：IHC小图的特征描述子
     Magnification：大图与小图之间的缩放比例
-    KeypointA_Guide1：HE小图的关键点检测结果
-    EncodeA_Guide1：HE小图的特征描述子
-    KeypointB_Guide1：IHC小图的关键点检测结果
-    EncodeB_Guide1：IHC小图的特征描述子
-    （大图和小图全都反了）
+    KeypointA_Guide1：HE大图的关键点检测结果
+    EncodeA_Guide1：HE大图的特征描述子
+    KeypointB_Guide1：IHC大图的关键点检测结果
+    EncodeB_Guide1：IHC大图的特征描述子
     """
     # 输入：
     # 参考Matching_Origin()和Matching_Guide()的解释
@@ -594,3 +594,20 @@ def Matching_TwoMapping(KeypointA_Origin, EncodeA_Origin, KeypointB_Origin, Enco
     E_End = time.time()
     print(f'三级映射匹配: 总耗时{E_End - E_Start:.3f}秒')
     return ResultA_Origin, ResultB_Origin, ResultA_Guide2, ResultB_Guide2, MatchResultA, MatchResultB
+
+if __name__ == '__main__':
+    import pickle
+    with open("data.pkl", "rb") as file:
+        kps_1_small, eigens_1_small, kps_2_small, eigens_2_small, ratio, kps_1_large, eigens_1_large, kps_2_large, eigens_2_large = pickle.load(file)
+    
+    _, _, _, _, match_kps_1, match_kps_2 = Matching_TwoMapping(kps_1_small, 
+                                                               eigens_1_small, 
+                                                               kps_2_small, 
+                                                               eigens_2_small, 
+                                                               ratio, 
+                                                               kps_1_large, 
+                                                               eigens_1_large, 
+                                                               kps_2_large, 
+                                                               eigens_2_large)
+    print(match_kps_1.shape)
+    print(match_kps_1.shape)

@@ -15,7 +15,7 @@ from concurrent.futures import ProcessPoolExecutor
 from logger import Logger
 from preprocess import read_slide, monomer_preprocess, polysome_preprocess, my_resize
 from conv import get_mask_list, get_conv_list, get_diff_list
-from keypoint import get_kps, get_color_keypoint_img
+from keypoint import get_kps, get_kps_from_mask, get_color_keypoint_img
 from eigen import get_eigens
 from match import Matching_TwoMapping
 
@@ -31,8 +31,10 @@ def get_params():
     parser.add_argument("--slide_type", type=str, default="monomer", help="slide type, monomer/polysome")
     parser.add_argument("--conv_radius_min", type=int, default=2, help="minimum radius of ring for convolution")
     parser.add_argument("--conv_radius_max", type=int, default=6, help="maximum radius of ring for convolution")
-    parser.add_argument("--eigen_radius_min", type=int, default=100, help="minimum radius of ring for descriptors")
-    parser.add_argument("--eigen_radius_max", type=int, default=180, help="maximum radius of ring for descriptors")
+    parser.add_argument("--eigen_radius_min_large", type=int, default=100, help="minimum radius of ring for descriptors of large image")
+    parser.add_argument("--eigen_radius_max_large", type=int, default=180, help="maximum radius of ring for descriptors of large image")
+    parser.add_argument("--eigen_radius_min_small", type=int, default=6, help="minimum radius of ring for descriptors of small image")
+    parser.add_argument("--eigen_radius_max_small", type=int, default=12, help="maximum radius of ring for descriptors of small image")
     parser.add_argument("--thickness", type=int, default=10, help="thickness of the ring")
     parser.add_argument("--overlap_factor", type=int, default=3, help="overlap factor for multiple rings")
     parser.add_argument("--resize_height_large", type=int, default=1024, help="large image's height for slide 1")
@@ -91,8 +93,10 @@ def get_params():
     params["slide_type"] = args.slide_type
     params["conv_radius_min"] = args.conv_radius_min
     params["conv_radius_max"] = args.conv_radius_max
-    params["eigen_radius_min"] = args.eigen_radius_min
-    params["eigen_radius_max"] = args.eigen_radius_max
+    params["eigen_radius_min_large"] = args.eigen_radius_min_large
+    params["eigen_radius_max_large"] = args.eigen_radius_max_large
+    params["eigen_radius_min_small"] = args.eigen_radius_min_small
+    params["eigen_radius_max_small"] = args.eigen_radius_max_small
     params["thickness"] = args.thickness
     params["overlap_factor"] = args.overlap_factor
     params["resize_height_large"] = args.resize_height_large
@@ -116,12 +120,17 @@ def compute(img_origin,
             img_nobg_gray, 
             params, 
             myLogger, 
-            slide_num):
+            slide_num, 
+            mask=None):
     # Get necessary information
     conv_radius_min = params["conv_radius_min"]
     conv_radius_max = params["conv_radius_max"]
-    eigen_radius_min = params["eigen_radius_min"]
-    eigen_radius_max = params["eigen_radius_max"]
+    if (slide_num == 3) or (slide_num == 4):
+        eigen_radius_min = params["eigen_radius_min_small"]
+        eigen_radius_max = params["eigen_radius_max_small"]
+    else:
+        eigen_radius_min = params["eigen_radius_min_large"]
+        eigen_radius_max = params["eigen_radius_max_large"]
     thickness = params["thickness"]
     overlap_factor = params["overlap_factor"]
     result_path = params["result_path"]
@@ -144,20 +153,31 @@ def compute(img_origin,
     myLogger.print("Get differential list done.")
     
     # Get keypoints
-    kps = get_kps(diff_list, keypoint_radius)
-    myLogger.print("Get keypoints done.")
+    if (slide_num == 3) or (slide_num == 4):
+        myLogger.print("Using mask to generator keypoints.")
+        kps = get_kps_from_mask(mask)
+    else:
+        kps = get_kps(diff_list, keypoint_radius)
+        myLogger.print("Get keypoints done.")
     myLogger.print(f"Total keypoints number for slide: {kps.shape[0]}")
     
-    img_mean = np.zeros_like(diff_list[0]).astype(np.int32)
+    # Get eigenvectors
+    img_mean = np.zeros_like(img_nobg_gray).astype(np.int32)
+    # Get image mean
     for diff_img in diff_list:
         img_mean += diff_img
     img_mean = img_mean / len(diff_list)
     img_mean = img_mean.astype(np.uint8)
-    
-    # Get eigenvectors
+    # Get conv kernels for eigens
     eigen_mask_list = get_mask_list(eigen_radius_min, eigen_radius_max, thickness, overlap_factor)
-    # eigens = get_eigens(img_origin_gray, kps, eigen_mask_list)
-    eigens = get_eigens(img_mean, kps, eigen_mask_list)
+    if (slide_num == 3) or (slide_num == 4):
+        eigens_list = list()
+        for diff_img in diff_list:
+            temp = get_eigens(diff_img, kps, eigen_mask_list)
+            eigens_list.append(temp)
+        eigens = np.hstack(eigens_list)
+    else:
+        eigens = get_eigens(img_mean, kps, eigen_mask_list)
     myLogger.print("Get eigen vectors done.")
     myLogger.print(f"Eigen vectors' shape: {eigens.shape}")
     
@@ -233,18 +253,20 @@ def register():
     # Remove huge variables
     del slide_1, slide_2
     # Preprocess images
-    img_origin_gray_1_large, img_nobg_1_large, img_nobg_gray_1_large = monomer_preprocess(img_origin_1_large, stain_type_1)
-    img_origin_gray_2_large, img_nobg_2_large, img_nobg_gray_2_large = monomer_preprocess(img_origin_2_large, stain_type_2)
+    img_origin_gray_1_large, img_nobg_1_large, img_nobg_gray_1_large, mask_1_large = monomer_preprocess(img_origin_1_large, stain_type_1)
+    img_origin_gray_2_large, img_nobg_2_large, img_nobg_gray_2_large, mask_2_large = monomer_preprocess(img_origin_2_large, stain_type_2)
 
     img_origin_1_small = my_resize(img_origin_1_large, resize_h_s)
     img_origin_gray_1_small = my_resize(img_origin_gray_1_large, resize_h_s)
     img_nobg_1_small = my_resize(img_nobg_1_large, resize_h_s)
     img_nobg_gray_1_small = my_resize(img_nobg_gray_1_large, resize_h_s)
+    mask_1_small = my_resize(mask_1_large, resize_h_s, cv.INTER_NEAREST)
 
     img_origin_2_small = my_resize(img_origin_2_large, resize_h_s_2)
     img_origin_gray_2_small = my_resize(img_origin_gray_2_large, resize_h_s_2)
     img_nobg_2_small = my_resize(img_nobg_2_large, resize_h_s_2)
     img_nobg_gray_2_small = my_resize(img_nobg_gray_2_large, resize_h_s_2)
+    mask_2_small = my_resize(mask_2_large, resize_h_s_2, cv.INTER_NEAREST)
     
     # Process for slide 1 & 2
     kps_1_large, eigens_1_large = compute(img_origin_1_large, 
@@ -263,17 +285,14 @@ def register():
                                           myLogger, 
                                           2)
     
-    params["eigen_radius_min"] = 6
-    params["eigen_radius_max"] = 12
-    params["keypoint_radius"] = 1
-    
     kps_1_small, eigens_1_small = compute(img_origin_1_small, 
                                           img_origin_gray_1_small, 
                                           img_nobg_1_small, 
                                           img_nobg_gray_1_small, 
                                           params, 
                                           myLogger, 
-                                          3)
+                                          3, 
+                                          mask_1_small)
     
     kps_2_small, eigens_2_small = compute(img_origin_2_small, 
                                           img_origin_gray_2_small, 
@@ -281,7 +300,8 @@ def register():
                                           img_nobg_gray_2_small, 
                                           params, 
                                           myLogger, 
-                                          4)
+                                          4, 
+                                          mask_2_small)
     
     # Match them
     myLogger.print("Matching...")

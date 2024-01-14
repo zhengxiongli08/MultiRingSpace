@@ -86,14 +86,28 @@ def get_kps(diff_list, kp_r):
         img_up = diff_list[i + 1]
         img_down = diff_list[i - 1]
         
-        kps = _get_kps(img_self, img_up, img_down, kp_r)
-        kps = map2array(kps)
+        kps_map = _get_kps(img_self, img_up, img_down, kp_r)
+        kps = map2array(kps_map)
         kps_list.append(kps)
     # Combine vertically
     temp = np.vstack(kps_list).astype(np.int32)
     # Remove duplicate rows
     result = np.unique(temp, axis=0)
 
+    return result
+
+def get_kps_from_mask(mask):
+    """
+    Generator keypoints from mask
+    """
+    # Generate the meshgrid
+    height, width = mask.shape
+    temp = np.zeros((height, width), dtype=np.int32)
+    temp[::2, ::2] = 1
+    # Filter wrong keypoints using mask
+    kps_map = np.multiply(temp, mask)
+    result = map2array(kps_map)
+    
     return result
 
 def get_color_keypoint_img(img: np.ndarray, keypoints: np.ndarray) -> np.ndarray:
