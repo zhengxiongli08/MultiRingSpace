@@ -35,7 +35,6 @@ def local_conv(src, mask, coor_h, coor_w):
 @njit(parallel=True)
 def get_conv_eigen(img, kps, mask):
     """
-    Warp for _get_conv_eigen.
     Get convolution values for all keypoints using a single kernel
     'result' is a numpy array whose length is keypoints' number
     """
