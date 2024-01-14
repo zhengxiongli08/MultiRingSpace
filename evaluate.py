@@ -101,6 +101,19 @@ def affine_transform(kps_1, kps_2, img_2):
     
     return img_2_new, kps_2_new, affine_matrix
 
+def pixel2um(pixel_error, magnification):
+    """
+    Transform pixel error into um error
+    """
+    if magnification == "20x":
+        um_error = pixel_error * 0.5
+    elif magnification == "40x":
+        um_error = pixel_error * 0.25
+    else:
+        raise Exception("Unsupported magnification factor.")
+    
+    return um_error
+
 def quantize(coords_1, coords_2, affine_matrix, resize_factor, magnification):
     """
     Quantize the results of image registration
@@ -111,18 +124,14 @@ def quantize(coords_1, coords_2, affine_matrix, resize_factor, magnification):
     coords_2_new = cv.transform(coords_2.reshape((-1, 1, 2)), affine_matrix)
     coords_2_new = np.squeeze(coords_2_new, axis=1)
     # Calculate Euclidean Distances and pixel errors
-    pixel_errors = np.linalg.norm(coords_1 - coords_2, axis=1)
-    mean_pixel_error = np.mean(pixel_errors)
-    # Calculate real world error in um units
-    top_pixel_error = mean_pixel_error / resize_factor
-    if magnification == "20x":
-        um_error = top_pixel_error * 0.5
-    elif magnification == "40x":
-        um_error = top_pixel_error * 0.25
-    else:
-        raise Exception("Unsupported magnification factor.")
+    pixel_errors = np.linalg.norm(coords_1 - coords_2_new, axis=1)
+    top_pixel_errors = pixel_errors / resize_factor
+    # Calculate the real world errors in um
+    um_errors = np.zeros_like(pixel_errors)
+    for i in range(0, um_errors.shape[0]):
+        um_errors[i] = pixel2um(top_pixel_errors[i], magnification)
     
-    return mean_pixel_error, um_error
+    return pixel_errors, um_errors
 
 def get_params():
     """
@@ -187,6 +196,8 @@ def evaluate():
     coords_2 = get_coords(jsons_path_2, resize_factor_2)
     # Create logger
     myLogger = Logger(result_path)
+    # kps_1 = coords_1
+    # kps_2 = coords_2
     
     # Draw lines before affine transformation
     img_combo = my_hstack(img_1, img_2)
@@ -197,7 +208,15 @@ def evaluate():
     _, _, affine_matrix = affine_transform(kps_1, kps_2, img_2)
     
     # Quantize
-    pixel_error, um_error = quantize(coords_1, coords_2, affine_matrix, resize_factor_1, magnification)
+    pixel_errors, um_errors = quantize(coords_1, coords_2, affine_matrix, resize_factor_1, magnification)
+    
+    pixel_error = np.mean(pixel_errors)
+    um_error = np.mean(um_errors)
+    
+    myLogger.print(f"Max pixel error: {np.max(pixel_errors):.2f} pixels.")
+    myLogger.print(f"Min pixel error: {np.min(pixel_errors):.2f} pixels.")
+    myLogger.print(f"Max um error: {np.max(um_errors):.2f}um.")
+    myLogger.print(f"Min um error: {np.min(um_errors):.2f}um.")
     myLogger.print(f"Pixel error: {pixel_error:.2f} pixels.")
     myLogger.print(f"um error: {um_error:.2f}um")
     

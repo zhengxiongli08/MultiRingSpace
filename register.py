@@ -25,8 +25,9 @@ def get_params():
     """
     Receive parameters from terminal
     """
+    long_str = "/mnt/Disk1/whole_slide_image_analysis/Lizhengxiong/Projects/MultiRingSpace/BiopsyDatabase/WSI_100Cases/BC-8-group1"
     parser = argparse.ArgumentParser(description="Indicate parameters, use --help for help.")
-    parser.add_argument("--group_path", type=str, default="../BiopsyDatabase/WSI_100Cases/BC-8-group1", help="group's path")
+    parser.add_argument("--group_path", type=str, default=long_str, help="group's path")
     parser.add_argument("--result_path", type=str, default="../result", help="result's folder")
     parser.add_argument("--slide_type", type=str, default="monomer", help="slide type, monomer/polysome")
     parser.add_argument("--conv_radius_min", type=int, default=2, help="minimum radius of ring for convolution")
@@ -238,7 +239,7 @@ def register():
     stain_type_2 = params["stain_type_2"]
     # Read both slides
     with ProcessPoolExecutor(max_workers=2) as executor:
-        myLogger.print(f"Reading slides {slide_1_path} and {slide_2_path}")
+        myLogger.print(f"Reading slides.")
         future_1 = executor.submit(read_slide, slide_1_path)
         future_2 = executor.submit(read_slide, slide_2_path)
         slide_1 = future_1.result()
