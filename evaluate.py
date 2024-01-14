@@ -58,18 +58,14 @@ def read_jsons(jsons_path):
     
     return mean_coordinates
 
-def get_resize_factor(slide_path, resize_height):
+def get_resize_factor(slide_path, img_height):
     """
     Calculate the resize factor
     size_new = size_old * resize_factor
     """
-    try:    # For .svs files
-        slide = pyvips.Image.new_from_file(slide_path, level=0)
-        slide_height = slide.height
-    except: # For .npy files
-        slide = np.load(slide_path, mmap_mode="r")
-        slide_height = slide.shape[0]
-    resize_factor = resize_height / slide_height
+    slide = pyvips.Image.new_from_file(slide_path, level=0)
+    slide_height = slide.height
+    resize_factor = img_height / slide_height
     
     return resize_factor
 
@@ -144,6 +140,21 @@ def get_params():
 
     return params
 
+def random_rows(kps_1, kps_2, rows_num=100):
+    """
+    Randomly extract some rows from current matrix
+    """
+    total_rows = kps_1.shape[0]
+    if rows_num > total_rows:
+        raise Exception("Too many rows to extract")
+    # Generate random indices to select rows
+    random_indices = np.random.choice(total_rows, size=rows_num, replace=False)
+    # Extract rows
+    res_1 = kps_1[random_indices, :]
+    res_2 = kps_2[random_indices, :]
+
+    return res_1, res_2
+
 def evaluate():
     """
     Evaluate the performance of image registration
@@ -156,31 +167,32 @@ def evaluate():
     jsons_path_2 = params["landmarks_2_path"]
     slide_1_path = params["slide_1_path"]
     slide_2_path = params["slide_2_path"]
-    resize_height = params["resize_height_large"]
     magnification = params["magnification"]
     eva_data_path = os.path.join(result_path, "eva_data")
     kps_1_path = os.path.join(eva_data_path, "match_kps_1.npy")
     kps_2_path = os.path.join(eva_data_path, "match_kps_2.npy")
     img_1_path = os.path.join(result_path, "slide-1", "img_origin.png")
     img_2_path = os.path.join(result_path, "slide-2", "img_origin.png")
-    # Get the manual landmarks
-    resize_factor_1 = get_resize_factor(slide_1_path, resize_height)
-    resize_factor_2 = get_resize_factor(slide_2_path, resize_height)
-    coords_1 = get_coords(jsons_path_1, resize_factor_1)
-    coords_2 = get_coords(jsons_path_2, resize_factor_2)
     # Read keypoints data from npy files
     kps_1 = np.load(kps_1_path)
     kps_2 = np.load(kps_2_path)
+    kps_1, kps_2 = random_rows(kps_1, kps_2, 100)
     # Read thumbnails
     img_1 = cv.imread(img_1_path)
     img_2 = cv.imread(img_2_path)
+    # Get the manual landmarks
+    resize_factor_1 = get_resize_factor(slide_1_path, img_1.shape[0])
+    resize_factor_2 = get_resize_factor(slide_2_path, img_2.shape[0])
+    coords_1 = get_coords(jsons_path_1, resize_factor_1)
+    coords_2 = get_coords(jsons_path_2, resize_factor_2)
     # Create logger
     myLogger = Logger(result_path)
     
     # Draw lines before affine transformation
     img_combo = my_hstack(img_1, img_2)
-    img_match = draw_line(img_1, img_2, kps_1, kps_2, thickness=1)
+    img_match = draw_line(img_1, img_2, kps_1, kps_2, thickness=2)
     img_match_manual = draw_line(img_1, img_2, coords_1, coords_2, thickness=3)
+    img_match_combo = np.vstack((img_match_manual, img_match))
     # Do affine transformation
     _, _, affine_matrix = affine_transform(kps_1, kps_2, img_2)
     
@@ -196,9 +208,11 @@ def evaluate():
     img_combo_path = os.path.join(eva_result_path, "img_combo.png")
     img_match_path = os.path.join(eva_result_path, "img_match.png")
     img_match_manual_path = os.path.join(eva_result_path, "img_match_manual.png")
+    img_match_combo_path = os.path.join(eva_result_path, "img_match_combo.png")
     cv.imwrite(img_combo_path, img_combo)
     cv.imwrite(img_match_path, img_match)
     cv.imwrite(img_match_manual_path, img_match_manual)
+    cv.imwrite(img_match_combo_path, img_match_combo)
     # Results of errors
     errors = {"pixel_error": pixel_error, "um_error": um_error}
     errors_path = os.path.join(eva_result_path, "errors.json")
