@@ -25,7 +25,7 @@ def get_params():
     """
     Receive parameters from terminal
     """
-    long_str = "/mnt/Disk1/whole_slide_image_analysis/Lizhengxiong/Projects/MultiRingSpace/BiopsyDatabase/WSI_100Cases/BC-8-group1"
+    long_str = "/mnt/Disk1/whole_slide_image_analysis/Lizhengxiong/Projects/MultiRingSpace/BiopsyDatabase/WSI_100Cases/BC-9-group2"
     parser = argparse.ArgumentParser(description="Indicate parameters, use --help for help.")
     parser.add_argument("--group_path", type=str, default=long_str, help="group's path")
     parser.add_argument("--result_path", type=str, default="../result", help="result's folder")
@@ -40,7 +40,7 @@ def get_params():
     parser.add_argument("--overlap_factor", type=int, default=3, help="overlap factor for multiple rings")
     parser.add_argument("--resize_height_large", type=int, default=1024, help="large image's height for slide 1")
     parser.add_argument("--resize_height_small", type=int, default=128, help="small image's height for slide 1")
-    parser.add_argument("--keypoint_radius", type=int, default=3, help="radius of keypoints detect region")
+    parser.add_argument("--keypoint_radius", type=int, default=2, help="radius of keypoints detect region")
     # Initialize parser
     args = parser.parse_args()
     # Extract database path
@@ -122,7 +122,8 @@ def compute(img_origin,
             params, 
             myLogger, 
             slide_num, 
-            mask=None):
+            mask=None,
+            diff_list_large=None):
     # Get necessary information
     conv_radius_min = params["conv_radius_min"]
     conv_radius_max = params["conv_radius_max"]
@@ -150,12 +151,18 @@ def compute(img_origin,
     myLogger.print("Get convolution list done.")
     
     # Get differential pyramid
-    diff_list = get_diff_list(conv_list, img_nobg_gray)
+    if (slide_num == 3) or (slide_num == 4):
+        diff_list = list()
+        for diff_img in diff_list_large:
+            temp = my_resize(diff_img, img_nobg_gray.shape[0])
+            diff_list.append(temp)
+    else:
+        diff_list = get_diff_list(conv_list, img_nobg_gray)
     myLogger.print("Get differential list done.")
     
     # Get keypoints
     if (slide_num == 3) or (slide_num == 4):
-        myLogger.print("Using mask to generator keypoints.")
+        myLogger.print("Using mask to generate keypoints.")
         kps = get_kps_from_mask(mask)
     else:
         kps = get_kps(diff_list, keypoint_radius)
@@ -170,14 +177,15 @@ def compute(img_origin,
     img_mean = img_mean / len(diff_list)
     img_mean = img_mean.astype(np.uint8)
     # Get conv kernels for eigens
-    eigen_mask_list = get_mask_list(eigen_radius_min, eigen_radius_max, thickness, overlap_factor)
     if (slide_num == 3) or (slide_num == 4):
+        eigen_mask_list = get_mask_list(eigen_radius_min, eigen_radius_max, 1, overlap_factor)
         eigens_list = list()
         for diff_img in diff_list:
             temp = get_eigens(diff_img, kps, eigen_mask_list)
             eigens_list.append(temp)
         eigens = np.hstack(eigens_list)
     else:
+        eigen_mask_list = get_mask_list(eigen_radius_min, eigen_radius_max, thickness, overlap_factor)
         eigens = get_eigens(img_mean, kps, eigen_mask_list)
     myLogger.print("Get eigen vectors done.")
     myLogger.print(f"Eigen vectors' shape: {eigens.shape}")
@@ -211,7 +219,7 @@ def compute(img_origin,
     img_mean_path = os.path.join(slide_result_path, f"img_mean.png")
     cv.imwrite(img_mean_path, img_mean)
     
-    return kps, eigens
+    return kps, eigens, diff_list
 
 def register():
     """
@@ -238,14 +246,8 @@ def register():
     stain_type_1 = params["stain_type_1"]
     stain_type_2 = params["stain_type_2"]
     # Read both slides
-    with ProcessPoolExecutor(max_workers=2) as executor:
-        myLogger.print(f"Reading slides.")
-        future_1 = executor.submit(read_slide, slide_1_path)
-        future_2 = executor.submit(read_slide, slide_2_path)
-        slide_1 = future_1.result()
-        slide_2 = future_2.result()
-        myLogger.print("Read slides done.")
-        
+    slide_1 = read_slide(slide_1_path)
+    slide_2 = read_slide(slide_2_path)
     # Resize images
     resize_h_l_2 = int(slide_2.shape[0] * (resize_h_l / slide_1.shape[0]))
     resize_h_s_2 = int(resize_h_l_2 * (resize_h_s / resize_h_l))
@@ -270,7 +272,7 @@ def register():
     mask_2_small = my_resize(mask_2_large, resize_h_s_2, cv.INTER_NEAREST)
     
     # Process for slide 1 & 2
-    kps_1_large, eigens_1_large = compute(img_origin_1_large, 
+    kps_1_large, eigens_1_large, diff_list_1 = compute(img_origin_1_large, 
                                           img_origin_gray_1_large, 
                                           img_nobg_1_large, 
                                           img_nobg_gray_1_large, 
@@ -278,7 +280,7 @@ def register():
                                           myLogger, 
                                           1)
     
-    kps_2_large, eigens_2_large = compute(img_origin_2_large, 
+    kps_2_large, eigens_2_large, diff_list_2 = compute(img_origin_2_large, 
                                           img_origin_gray_2_large, 
                                           img_nobg_2_large, 
                                           img_nobg_gray_2_large, 
@@ -286,27 +288,29 @@ def register():
                                           myLogger, 
                                           2)
     
-    kps_1_small, eigens_1_small = compute(img_origin_1_small, 
+    kps_1_small, eigens_1_small, _ = compute(img_origin_1_small, 
                                           img_origin_gray_1_small, 
                                           img_nobg_1_small, 
                                           img_nobg_gray_1_small, 
                                           params, 
                                           myLogger, 
                                           3, 
-                                          mask_1_small)
+                                          mask_1_small,
+                                          diff_list_1)
     
-    kps_2_small, eigens_2_small = compute(img_origin_2_small, 
+    kps_2_small, eigens_2_small, _ = compute(img_origin_2_small, 
                                           img_origin_gray_2_small, 
                                           img_nobg_2_small, 
                                           img_nobg_gray_2_small, 
                                           params, 
                                           myLogger, 
                                           4, 
-                                          mask_2_small)
+                                          mask_2_small,
+                                          diff_list_2)
     
     # Match them
     myLogger.print("Matching...")
-    _, _, _, _, match_kps_1, match_kps_2 = Matching_TwoMapping(kps_1_small, 
+    match_kps_1, match_kps_2, _, _, match_kps_11, match_kps_22 = Matching_TwoMapping(kps_1_small, 
                                                                eigens_1_small, 
                                                                kps_2_small, 
                                                                eigens_2_small, 

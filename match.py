@@ -161,45 +161,45 @@ def TransformPoint(Point, TransMat):
     Point_Trans = np.squeeze(Point_Trans, axis=1)  # 删除指定维度为1的矩阵维度
     return Point_Trans
 
-def GeometricConsistency(KeypointA, KeypointB):
-    """
-        基于几何差异，迭代出几何一致的成对的关键
-    """
-    # 输入:
-    # KeypointA, KeypointB: Numpy数据格式,各行一一对应
-    #
-    # 初始化参数
-    T_NumKP = 100                 # 控制最后一次成对关键点的数目
-    T_IterativeResolution = 0.7  # 该值属于[0~1],取0与1非法,值越小迭代次数越少，结果越不稳定
-    # Num_GoodKP = T_NumKP + 1   # 确保Num>T_NumKP首次执行满足条件
-    Loop = 0                     # 统计迭代次数
-    # 迭代
-    E_Start = time.time()
-    while True:
-        # 遍历搜索，获得关键点之间的距离
-        DistanceA, _ = NearKeypoint(KeypointA, KeypointA.shape[0], KeypointA)
-        DistanceB, _ = NearKeypoint(KeypointB, KeypointB.shape[0], KeypointB)
-        # 几何差异【图"间"距离筛选】【DD: Distance Difference】
-        DDiff = np.abs(np.mean(DistanceA, axis=1) - np.mean(DistanceB, axis=1))
-        # 找出T_IterativeResolution倍的成对关键，输出其索引
-        Indexed_DDiffValue = [(Value, Index) for Index, Value in enumerate(DDiff)]  # 创建带有索引的元组列表
-        Index_GoodDD = [Index for (Value, Index) in heapq.nsmallest(int(T_IterativeResolution*DDiff.shape[0]), Indexed_DDiffValue, key=lambda x: x[0])]
-        # 更新迭代所需的数据
-        KeypointA = KeypointA[Index_GoodDD]
-        KeypointB = KeypointB[Index_GoodDD]
-        # 关键点数目【KeypointA与KeypointB的关键点数目始终相同】
-        Num_GoodKP = KeypointA.shape[0]
-        Loop += 1  # 统计迭代次数
-        # 判定是否结束迭代,并准备输出值
-        KPS_A, KPS_B, Aff_M, Mask = EstimateAffineTransformation(KeypointA, KeypointB)
-        if (Mask.all() == True) or (Num_GoodKP < T_NumKP):
-            KeypointA, KeypointB = KPS_A, KPS_B  # 迭代结束后使用变换矩阵是为了防止迭代结束后可能存在误匹配，尽管这种情况极小
-            Num_GoodKP = KeypointA.shape[0]
-            break
-    # 报告迭代信息
-    E_End = time.time()
-    print(f'全局迭代信息: 共计迭代{Loop}次,耗时{E_End-E_Start:.3f}秒，从暴力匹配中，迭代产生{Num_GoodKP}对关键点')
-    return KeypointA, KeypointB, Aff_M
+# def GeometricConsistency(KeypointA, KeypointB):
+#     """
+#         基于几何差异，迭代出几何一致的成对的关键
+#     """
+#     # 输入:
+#     # KeypointA, KeypointB: Numpy数据格式,各行一一对应
+#     #
+#     # 初始化参数
+#     T_NumKP = 100                 # 控制最后一次成对关键点的数目
+#     T_IterativeResolution = 0.7  # 该值属于[0~1],取0与1非法,值越小迭代次数越少，结果越不稳定
+#     # Num_GoodKP = T_NumKP + 1   # 确保Num>T_NumKP首次执行满足条件
+#     Loop = 0                     # 统计迭代次数
+#     # 迭代
+#     E_Start = time.time()
+#     while True:
+#         # 遍历搜索，获得关键点之间的距离
+#         DistanceA, _ = NearKeypoint(KeypointA, KeypointA.shape[0], KeypointA)
+#         DistanceB, _ = NearKeypoint(KeypointB, KeypointB.shape[0], KeypointB)
+#         # 几何差异【图"间"距离筛选】【DD: Distance Difference】
+#         DDiff = np.abs(np.mean(DistanceA, axis=1) - np.mean(DistanceB, axis=1))
+#         # 找出T_IterativeResolution倍的成对关键，输出其索引
+#         Indexed_DDiffValue = [(Value, Index) for Index, Value in enumerate(DDiff)]  # 创建带有索引的元组列表
+#         Index_GoodDD = [Index for (Value, Index) in heapq.nsmallest(int(T_IterativeResolution*DDiff.shape[0]), Indexed_DDiffValue, key=lambda x: x[0])]
+#         # 更新迭代所需的数据
+#         KeypointA = KeypointA[Index_GoodDD]
+#         KeypointB = KeypointB[Index_GoodDD]
+#         # 关键点数目【KeypointA与KeypointB的关键点数目始终相同】
+#         Num_GoodKP = KeypointA.shape[0]
+#         Loop += 1  # 统计迭代次数
+#         # 判定是否结束迭代,并准备输出值
+#         KPS_A, KPS_B, Aff_M, Mask = EstimateAffineTransformation(KeypointA, KeypointB)
+#         if (Mask.all() == True) or (Num_GoodKP < T_NumKP):
+#             KeypointA, KeypointB = KPS_A, KPS_B  # 迭代结束后使用变换矩阵是为了防止迭代结束后可能存在误匹配，尽管这种情况极小
+#             Num_GoodKP = KeypointA.shape[0]
+#             break
+#     # 报告迭代信息
+#     E_End = time.time()
+#     print(f'全局迭代信息: 共计迭代{Loop}次,耗时{E_End-E_Start:.3f}秒，从暴力匹配中，迭代产生{Num_GoodKP}对关键点')
+#     return KeypointA, KeypointB, Aff_M
 
 def GeometricConsistency_Guide(KeypointA, KeypointB, Magnification):
     """

@@ -52,13 +52,13 @@ def main():
         commands_eva.append(command_eva)
     
     # Execute registration
-    with multiprocessing.Pool(processes=10) as pool:
+    with multiprocessing.Pool(processes=4) as pool:
         pool.map_async(my_run, commands_reg)
         pool.close()
         pool.join()
     
     # Execute evaluation
-    with multiprocessing.Pool(processes=10) as pool:
+    with multiprocessing.Pool(processes=12) as pool:
         pool.map_async(my_run, commands_eva)
         pool.close()
         pool.join()

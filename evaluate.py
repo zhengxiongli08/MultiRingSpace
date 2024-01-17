@@ -155,7 +155,7 @@ def random_rows(kps_1, kps_2, rows_num=100):
     """
     total_rows = kps_1.shape[0]
     if rows_num > total_rows:
-        raise Exception("Too many rows to extract")
+        return kps_1, kps_2
     # Generate random indices to select rows
     random_indices = np.random.choice(total_rows, size=rows_num, replace=False)
     # Extract rows
@@ -183,8 +183,8 @@ def evaluate():
     img_1_path = os.path.join(result_path, "slide-1", "img_origin.png")
     img_2_path = os.path.join(result_path, "slide-2", "img_origin.png")
     # Read keypoints data from npy files
-    kps_1 = np.load(kps_1_path)
-    kps_2 = np.load(kps_2_path)
+    kps_1 = np.load(kps_1_path).astype(np.int32)
+    kps_2 = np.load(kps_2_path).astype(np.int32)
     kps_1, kps_2 = random_rows(kps_1, kps_2, 100)
     # Read thumbnails
     img_1 = cv.imread(img_1_path)
@@ -196,8 +196,6 @@ def evaluate():
     coords_2 = get_coords(jsons_path_2, resize_factor_2)
     # Create logger
     myLogger = Logger(result_path)
-    # kps_1 = coords_1
-    # kps_2 = coords_2
     
     # Draw lines before affine transformation
     img_combo = my_hstack(img_1, img_2)

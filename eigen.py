@@ -1,50 +1,70 @@
 
 # This program is used to get the eigen vectors for keypoints
 
-import numba
+import sys
 import numpy as np
 import pickle
 from numba import njit, prange
+import time
 
 
 # Functions
 @njit
-def local_conv(src, mask, coor_h, coor_w):
+def local_conv(img, kernel, coor_h, coor_w):
     """
     Function:
         Do convolution in designated position
     Args:
         src: source matrix
-        mask: convolution kernel
+        kernel: convolution kernel
         i: convolution coordinates in height direction
         j: convolution coordinates in width direction
     Return:
         Convolution result
     """
-    result = 0
-    radius = int((mask.shape[0] - 1) / 2)
-    size = mask.shape[0]
-    for k in range(0, size):
-        for l in range(0, size):
-            img_value = src[coor_h-radius+k, coor_w-radius+l]
-            mask_value = mask[k, l]
-            result += img_value * mask_value
+    # Calculate the convolution result
+    radius = int((kernel.shape[0] - 1) / 2)
+    img_part = img[coor_h-radius:coor_h+radius+1, coor_w-radius:coor_w+radius+1]
+    temp = np.ravel(img_part * kernel)
+    overall = np.mean(temp)
+    # Divide the dot product results by the convolution result
+    greater_part = np.mean(temp[temp>overall])
+    indices = np.where((temp<=overall) & (temp>0))
+    less_part = np.mean(temp[indices])
     
-    return result
+    result = np.array((overall, greater_part, less_part))
     
-@njit(parallel=True)
-def get_conv_eigen(img, kps, mask):
-    """
-    Get convolution values for all keypoints using a single kernel
-    'result' is a numpy array whose length is keypoints' number
-    """
-    # Main part
-    kps_length = kps.shape[0]
-    result = np.zeros(kps_length)
-    for i in prange(0, kps_length):
-        coor_h, coor_w = kps[i, 0], kps[i, 1]
-        result[i] = local_conv(img, mask, coor_h, coor_w)
+    # return result
+    return overall
 
+def get_conv_eigen(img, kernel, kps):
+    """
+    Warp for _get_conv_eigen
+    Because numba doesn't support np.pad operation
+    """
+    @njit(parallel=True)
+    def _get_conv_eigen(img, kernel, kps):
+        """
+        Get convolution values for all keypoints using a single kernel
+        'result' is a numpy array whose length is keypoints' number
+        """
+        # Main part
+        kps_length = kps.shape[0]
+        result = np.zeros(kps_length)
+        for i in prange(0, kps_length):
+            coor_h, coor_w = kps[i, 0], kps[i, 1]
+            result[i] = local_conv(img, kernel, coor_h, coor_w)
+
+        return result
+    # Considering some keypoints are near to border
+    # Paddle the image and shift the keypoints
+    radius = int((kernel.shape[0] - 1) / 2)
+    pad_width = ((radius, radius), (radius, radius))
+    img_expand = np.pad(img, pad_width, mode="edge")
+    kps = kps + radius
+    # Calculate eigenvectors from convolution
+    result = _get_conv_eigen(img_expand, kernel, kps)
+    
     return result
 
 def zscore_scale(mat_data):
@@ -71,19 +91,18 @@ def zscore_scale(mat_data):
     
     return result
 
-def get_conv_eigens(img, kps, mask_list):
+def get_conv_eigens(img, kps, kernel_list):
     """
     Part 1 of eigens, energy of keypoints (convolution)
     After computing, normalize it
     """
     # Main part
     conv_pre = list()
-    for mask in mask_list:
-        temp = get_conv_eigen(img, kps, mask)
+    for kernel in kernel_list:
+        temp = get_conv_eigen(img, kernel, kps)
         conv_pre.append(temp)
-    # np.vstack has a row number of mask_list's length
-    # so, transpose it
-    temp = np.vstack(conv_pre).T
+    # Combine them as a single one
+    temp = np.hstack(conv_pre)
     # Normalize it row by row using z-score
     result = zscore_scale(temp)
     
@@ -109,17 +128,17 @@ def get_diff_eigens(conv_eigens):
     
     return result
     
-def get_eigens(img, kps, mask_list):
+def get_eigens(img, kps, kernel_list):
     """
     Get eigens vectors for all keypoints.
-    Eigen vectors are a numpy array.
+    Eigen vectors are a numpy array
     Number of rows is the number of keypoints.
     Number of columns is the length of a single eigen vector.
     Vector composition should be carefully designed.
     
     Part 1 of eigens: 
     energy of keypoints (convolution)
-    use convolution kernels in mask_list to calculate energy
+    use convolution kernels in kernel_list to calculate energy
     for every keypoint.
     Then scale it using z-score
     
@@ -128,23 +147,27 @@ def get_eigens(img, kps, mask_list):
     
     """
     # Part 1, keypoints' energy
-    conv_eigens = get_conv_eigens(img, kps, mask_list)
-    
+    conv_eigens = get_conv_eigens(img, kps, kernel_list)
+
     # Part 2, keypoints' energy difference
     diff_eigens = get_diff_eigens(conv_eigens)
-    
+
     eigens = (conv_eigens, diff_eigens)
     eigens = np.concatenate(eigens, axis=1)
-    
+
     eigens = zscore_scale(eigens)
     
     return eigens
     
 if __name__ == "__main__":    
-    with open("./temp/eigen_var1.pkl", "rb") as file:
-        img_origin_gray, kps, mask_list = pickle.load(file)
+    with open("./data.pkl", "rb") as file:
+        img_mean, kps, eigen_kernel_list = pickle.load(file)
 
-    eigens = get_eigens(img_origin_gray, kps, mask_list)
-    print(f"Entire eigens shape: {eigens.shape}")
+    print(len(eigen_kernel_list))
+    a1 = time.time()
+    conv_eigen = get_conv_eigen(img_mean, eigen_kernel_list[0], kps)
+    a2 = time.time()
+    print(conv_eigen.shape)
     
+    print(f"Eigen calculation cost: {a2-a1}")
     print("Program finished!")
