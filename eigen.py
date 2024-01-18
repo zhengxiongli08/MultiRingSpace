@@ -4,6 +4,7 @@
 import sys
 import numpy as np
 import pickle
+import multiprocessing
 from numba import njit, prange
 import time
 
@@ -28,16 +29,24 @@ def local_conv(img, kernel, coor_h, coor_w):
     temp = np.ravel(img_part * kernel)
     overall = np.mean(temp)
     # Divide the dot product results by the convolution result
-    greater_part = np.mean(temp[temp>overall])
-    indices = np.where((temp<=overall) & (temp>0))
-    less_part = np.mean(temp[indices])
+    temp1 = temp[temp > overall]
+    temp2 = temp[(temp <= overall) & (temp > 0)]
+    # Determine whether the part is empty or not
+    if temp1.shape[0] != 0:
+        greater_part = np.mean(temp1)
+    else:
+        greater_part = 0
+    
+    if temp2.shape[0] != 0:
+        less_part = np.mean(temp2)
+    else:
+        less_part = 0
     
     result = np.array((overall, greater_part, less_part))
-    
-    # return result
-    return overall
 
-def get_conv_eigen(img, kernel, kps):
+    return result
+
+def get_conv_eigen(img, kps, kernel):
     """
     Warp for _get_conv_eigen
     Because numba doesn't support np.pad operation
@@ -50,7 +59,7 @@ def get_conv_eigen(img, kernel, kps):
         """
         # Main part
         kps_length = kps.shape[0]
-        result = np.zeros(kps_length)
+        result = np.zeros((kps_length, 3))
         for i in prange(0, kps_length):
             coor_h, coor_w = kps[i, 0], kps[i, 1]
             result[i] = local_conv(img, kernel, coor_h, coor_w)
@@ -96,12 +105,10 @@ def get_conv_eigens(img, kps, kernel_list):
     Part 1 of eigens, energy of keypoints (convolution)
     After computing, normalize it
     """
-    # Main part
-    conv_pre = list()
-    for kernel in kernel_list:
-        temp = get_conv_eigen(img, kernel, kps)
-        conv_pre.append(temp)
-    # Combine them as a single one
+    # Prepare the input parameters
+    jobs = [(img, kps, kernel) for kernel in kernel_list]
+    with multiprocessing.Pool() as pool:
+        conv_pre = pool.starmap(get_conv_eigen, jobs)
     temp = np.hstack(conv_pre)
     # Normalize it row by row using z-score
     result = zscore_scale(temp)
@@ -161,13 +168,11 @@ def get_eigens(img, kps, kernel_list):
     
 if __name__ == "__main__":    
     with open("./data.pkl", "rb") as file:
-        img_mean, kps, eigen_kernel_list = pickle.load(file)
+        img_mean, kps, kernel_list = pickle.load(file)
 
-    print(len(eigen_kernel_list))
     a1 = time.time()
-    conv_eigen = get_conv_eigen(img_mean, eigen_kernel_list[0], kps)
+    res = get_eigens(img_mean, kps, kernel_list)
     a2 = time.time()
-    print(conv_eigen.shape)
     
-    print(f"Eigen calculation cost: {a2-a1}")
+    print(f"Eigen calculation cost: {a2-a1:.3f}s")
     print("Program finished!")

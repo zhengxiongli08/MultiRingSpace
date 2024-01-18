@@ -13,11 +13,12 @@ import json
 from natsort import natsorted
 from concurrent.futures import ProcessPoolExecutor
 from logger import Logger
-from preprocess import read_slide, monomer_preprocess, polysome_preprocess, my_resize
+from preprocess import *
 from conv import get_mask_list, get_conv_list, get_diff_list
 from keypoint import get_kps, get_kps_from_mask, get_color_keypoint_img
 from eigen import get_eigens
 from match import Matching_TwoMapping
+from match2 import Matching
 
 
 # Functions
@@ -25,11 +26,11 @@ def get_params():
     """
     Receive parameters from terminal
     """
-    long_str = "/mnt/Disk1/whole_slide_image_analysis/Lizhengxiong/Projects/MultiRingSpace/BiopsyDatabase/WSI_100Cases/BC-9-group2"
+    long_str1 = "/mnt/Disk1/whole_slide_image_analysis/Lizhengxiong/Projects/MultiRingSpace/BiopsyDatabase/WSI_100Cases/BC-9-group2"
+    long_str2 = "/mnt/Disk1/whole_slide_image_analysis/Lizhengxiong/Projects/MultiRingSpace/result"
     parser = argparse.ArgumentParser(description="Indicate parameters, use --help for help.")
-    parser.add_argument("--group_path", type=str, default=long_str, help="group's path")
-    parser.add_argument("--result_path", type=str, default="../result", help="result's folder")
-    parser.add_argument("--slide_type", type=str, default="monomer", help="slide type, monomer/polysome")
+    parser.add_argument("--group_path", type=str, default=long_str1, help="group's path")
+    parser.add_argument("--result_path", type=str, default=long_str2, help="result's folder")
     parser.add_argument("--conv_radius_min", type=int, default=2, help="minimum radius of ring for convolution")
     parser.add_argument("--conv_radius_max", type=int, default=6, help="maximum radius of ring for convolution")
     parser.add_argument("--eigen_radius_min_large", type=int, default=100, help="minimum radius of ring for descriptors of large image")
@@ -40,58 +41,17 @@ def get_params():
     parser.add_argument("--overlap_factor", type=int, default=3, help="overlap factor for multiple rings")
     parser.add_argument("--resize_height_large", type=int, default=1024, help="large image's height for slide 1")
     parser.add_argument("--resize_height_small", type=int, default=128, help="small image's height for slide 1")
-    parser.add_argument("--keypoint_radius", type=int, default=2, help="radius of keypoints detect region")
+    parser.add_argument("--keypoint_radius", type=int, default=3, help="radius of keypoints detect region")
     # Initialize parser
     args = parser.parse_args()
-    # Extract database path
-    database_path = os.path.dirname(args.group_path)
-    # Extract group name
-    group_name = os.path.basename(args.group_path)
-    # Extract magnification
-    if "magnification" in group_name:
-        magnification = "40x"
-    else:
-        magnification = "20x"
-    # Extract slide information
-    slides_list = list()
-    for file_name in natsorted(os.listdir(args.group_path)):
-        if file_name.endswith(".svs"):
-            slides_list.append(file_name)
-    if len(slides_list) != 2:
-        raise Exception(f"{len(slides_list)} slides detected, which should be 2")
-    # HE slide should be the first one, if it exists
-    if "HE" in slides_list[1]:
-        slides_list[0], slides_list[1] = slides_list[1], slides_list[0]
-    slide_1_path = os.path.join(args.group_path, slides_list[0])
-    slide_2_path = os.path.join(args.group_path, slides_list[1])
-    # Extract slide landmarks information
-    landmarks_path = os.path.join(args.group_path, "landmarks")
-    landmarks_folders = os.listdir(landmarks_path)
-    if landmarks_folders[0] in slides_list[0] and landmarks_folders[1] in slides_list[1]:
-        landmarks_1_path = os.path.join(landmarks_path, landmarks_folders[0])
-        landmarks_2_path = os.path.join(landmarks_path, landmarks_folders[1])
-    elif landmarks_folders[0] in slides_list[1] and landmarks_folders[1] in slides_list[0]:
-        landmarks_1_path = os.path.join(landmarks_path, landmarks_folders[1])
-        landmarks_2_path = os.path.join(landmarks_path, landmarks_folders[0])
-    else:
-        raise Exception("Landmarks not found.")
     # Clean up result folder
     if os.path.exists(args.result_path):
         shutil.rmtree(args.result_path)
     os.mkdir(args.result_path)
-    # Determine stain type for both slides
-    if "HE" in slide_1_path:
-        stain_type_1 = "HE"
-    else:
-        stain_type_1 = "IHC"
-    stain_type_2 = "IHC"
     # Put them into a dictionary
     params = dict()
-    params["database_path"] = database_path
     params["group_path"] = args.group_path
-    params["group_name"] = group_name
     params["result_path"] = args.result_path
-    params["slide_type"] = args.slide_type
     params["conv_radius_min"] = args.conv_radius_min
     params["conv_radius_max"] = args.conv_radius_max
     params["eigen_radius_min_large"] = args.eigen_radius_min_large
@@ -103,15 +63,6 @@ def get_params():
     params["resize_height_large"] = args.resize_height_large
     params["resize_height_small"] = args.resize_height_small
     params["keypoint_radius"] = args.keypoint_radius
-    params["slide_1_path"] = slide_1_path
-    params["slide_2_path"] = slide_2_path
-    params["slide_1_name"] = slides_list[0]
-    params["slide_2_name"] = slides_list[1]
-    params["landmarks_1_path"] = landmarks_1_path
-    params["landmarks_2_path"] = landmarks_2_path
-    params["stain_type_1"] = stain_type_1
-    params["stain_type_2"] = stain_type_2
-    params["magnification"] = magnification
     
     return params
 
@@ -232,19 +183,18 @@ def register():
     myLogger = Logger(result_path)
     myLogger.print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     myLogger.print(f"Start image registration using Multiple Scale Ring Space Algorithm.")
-    myLogger.print("{:<20} {}".format("Parameter", "Value"))
+    myLogger.print("{:<30} {}".format("Parameter", "Value"))
     for i in params:
-        myLogger.print("{:<20} {}".format(i, params[i]))
+        myLogger.print("{:<30} {}".format(i, params[i]))
     myLogger.print()
     
     # Start processing
     # Get necessary parameters
-    slide_1_path = params["slide_1_path"]
-    slide_2_path = params["slide_2_path"]
+    slide_1_path, slide_2_path = find_slide_path(params['group_path'])
+    stain_type_1 = find_stain_type(slide_1_path)
+    stain_type_2 = find_stain_type(slide_2_path)
     resize_h_l = params["resize_height_large"]
     resize_h_s = params["resize_height_small"]
-    stain_type_1 = params["stain_type_1"]
-    stain_type_2 = params["stain_type_2"]
     # Read both slides
     slide_1 = read_slide(slide_1_path)
     slide_2 = read_slide(slide_2_path)
@@ -256,8 +206,12 @@ def register():
     # Remove huge variables
     del slide_1, slide_2
     # Preprocess images
-    img_origin_gray_1_large, img_nobg_1_large, img_nobg_gray_1_large, mask_1_large = monomer_preprocess(img_origin_1_large, stain_type_1)
-    img_origin_gray_2_large, img_nobg_2_large, img_nobg_gray_2_large, mask_2_large = monomer_preprocess(img_origin_2_large, stain_type_2)
+    img_nobg_1_large, mask_1_large = bg_remove(img_origin_1_large)
+    img_nobg_2_large, mask_2_large = bg_remove(img_origin_2_large)
+    img_origin_gray_1_large = trans_gray(img_origin_1_large, stain_type_1)
+    img_origin_gray_2_large = trans_gray(img_origin_2_large, stain_type_2)
+    img_nobg_gray_1_large = trans_gray(img_nobg_1_large, stain_type_1)
+    img_nobg_gray_2_large = trans_gray(img_nobg_2_large, stain_type_2)
 
     img_origin_1_small = my_resize(img_origin_1_large, resize_h_s)
     img_origin_gray_1_small = my_resize(img_origin_gray_1_large, resize_h_s)
@@ -310,7 +264,7 @@ def register():
     
     # Match them
     myLogger.print("Matching...")
-    match_kps_1, match_kps_2, _, _, match_kps_11, match_kps_22 = Matching_TwoMapping(kps_1_small, 
+    match_kps_11, match_kps_22, _, _, match_kps_1, match_kps_2 = Matching_TwoMapping(kps_1_small, 
                                                                eigens_1_small, 
                                                                kps_2_small, 
                                                                eigens_2_small, 
@@ -319,6 +273,8 @@ def register():
                                                                eigens_1_large, 
                                                                kps_2_large, 
                                                                eigens_2_large)
+    
+    # match_kps_1, match_kps_2 = Matching(kps_1_large, eigens_1_large, kps_2_large, eigens_2_large)
     
     # Save data for evaluation
     eva_data_path = os.path.join(result_path, "eva_data")

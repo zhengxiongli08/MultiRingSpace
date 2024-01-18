@@ -6,10 +6,10 @@ import os
 import numpy as np
 import cv2 as cv
 import pyvips
-import argparse
 from logger import Logger
 from natsort import natsorted
 from draw import draw_line, my_hstack
+from preprocess import *
 
 
 # Functions
@@ -133,22 +133,6 @@ def quantize(coords_1, coords_2, affine_matrix, resize_factor, magnification):
     
     return pixel_errors, um_errors
 
-def get_params():
-    """
-    Receive parameters from terminal
-    """
-    parser = argparse.ArgumentParser(description="Please indicate paramters, use --help for help")
-    parser.add_argument("--result_path", type=str, default="../result", help="path for evaluate-ready result")
-    # Initialize parser
-    args = parser.parse_args()
-    # Extract the zoon level
-    dict_path = os.path.join(args.result_path, "eva_data", "params.json")
-    # Read the parameters dict
-    with open(dict_path, "r") as params_file:
-        params = json.load(params_file)
-
-    return params
-
 def random_rows(kps_1, kps_2, rows_num=100):
     """
     Randomly extract some rows from current matrix
@@ -164,19 +148,20 @@ def random_rows(kps_1, kps_2, rows_num=100):
 
     return res_1, res_2
 
-def evaluate():
+def evaluate(result_path):
     """
     Evaluate the performance of image registration
     """
     # Read parameters dict
-    params = get_params()
+    dict_path = os.path.join(result_path, "eva_data", "params.json")
+    with open(dict_path, "r") as params_file:
+        params = json.load(params_file)
     # Extract necessary parameters
-    result_path = params["result_path"]
-    jsons_path_1 = params["landmarks_1_path"]
-    jsons_path_2 = params["landmarks_2_path"]
-    slide_1_path = params["slide_1_path"]
-    slide_2_path = params["slide_2_path"]
-    magnification = params["magnification"]
+    group_path = params["group_path"]
+    slide_1_path, slide_2_path = find_slide_path(group_path)
+    landmarks_path_1 = find_landmarks_path(slide_1_path)
+    landmarks_path_2 = find_landmarks_path(slide_2_path)
+    magnification = find_magnification(group_path)
     eva_data_path = os.path.join(result_path, "eva_data")
     kps_1_path = os.path.join(eva_data_path, "match_kps_1.npy")
     kps_2_path = os.path.join(eva_data_path, "match_kps_2.npy")
@@ -192,8 +177,8 @@ def evaluate():
     # Get the manual landmarks
     resize_factor_1 = get_resize_factor(slide_1_path, img_1.shape[0])
     resize_factor_2 = get_resize_factor(slide_2_path, img_2.shape[0])
-    coords_1 = get_coords(jsons_path_1, resize_factor_1)
-    coords_2 = get_coords(jsons_path_2, resize_factor_2)
+    coords_1 = get_coords(landmarks_path_1, resize_factor_1)
+    coords_2 = get_coords(landmarks_path_2, resize_factor_2)
     # Create logger
     myLogger = Logger(result_path)
     
@@ -239,6 +224,6 @@ def evaluate():
     return
     
 if __name__ == '__main__':
-    evaluate()
+    evaluate("../result")
     
     print("Program finished!")

@@ -1,9 +1,10 @@
 
-# This program is used to remove background for monomer slides and polysome slides
+# This program is used for preprocess
 
 import rembg
 import cv2 as cv
 import numpy as np
+import os
 from skimage import io
 from numba import njit, prange
 
@@ -28,11 +29,10 @@ def read_slide(slide_path):
 
     return img
 
-def monomer_preprocess(img_origin, stain_type):
+def bg_remove(img_origin):
     """
-    Read a monomer slide, and preprocess it.
-    Including remove background and transform it into a gray scale image.
-    Input and outpur channels follow opencv rules (BGR)
+    Remove the background using rembg
+    Input and output images are BGR channels
     """
     # Convert color
     img_rgb = cv.cvtColor(img_origin, cv.COLOR_BGR2RGB)
@@ -41,27 +41,30 @@ def monomer_preprocess(img_origin, stain_type):
     mask = np.where(temp > 100, 1, 0)
     # Remove background
     img_nobg = np.multiply(img_rgb, mask[:, :, np.newaxis]).astype(np.uint8)
-    # # Remove extra channels
-    # channels = cv.split(img_nobg)
-    # img_nobg = cv.cvtColor(cv.merge(channels[:3]), cv.COLOR_RGB2BGR)
-    # Transform it into gray scale based on the stain type
+    # Convery color
+    img_nobg = cv.cvtColor(img_nobg, cv.COLOR_RGB2BGR)
+    
+    return img_nobg, mask
+
+def trans_gray(img, stain_type):
+    """
+    Transform the BGR image into gray scale
+    Local Histogram Equalization is used based on the stain type of this slide
+    """
     if stain_type == "HE":
         clahe = cv.createCLAHE(clipLimit=2, tileGridSize=(8, 8))
     elif stain_type == "IHC":
         clahe = cv.createCLAHE(clipLimit=4, tileGridSize=(8, 8))
     else:
         raise Exception("Stain type not supported.")
-    # img_nobg_gray = cv.cvtColor(img_nobg, cv.COLOR_BGR2GRAY)
-    img_nobg_gray = cv.cvtColor(img_nobg, cv.COLOR_RGB2GRAY)
-    img_nobg_gray = clahe.apply(img_nobg_gray)
-    # Get gray scale for image_origin
-    img_origin_gray = cv.cvtColor(img_origin, cv.COLOR_BGR2GRAY)
-    img_origin_gray = clahe.apply(img_origin_gray)
-
-    return img_origin_gray, img_nobg, img_nobg_gray, mask
+    # Get the gray scale image
+    img_gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    img_gray = clahe.apply(img_gray)
+    
+    return img_gray
 
 @njit(parallel=True)
-def bg_remove(img):
+def bg_remove2(img):
     """
     Remove background pixels based on the order of BGR values
     Accelerated using numba
@@ -99,15 +102,68 @@ def polysome_preprocess(img_origin):
                 
     return img_origin_gray, img_nobg, img_nobg_gray
 
-if __name__ == "__main__":
-    import os
-    test_path = "../BiopsyDatabase/WSI_100Cases/BC-23-40magnification-group1"
-    for file in os.listdir(test_path):
-        if not file.endswith(".svs"):
-            continue
-        slide_path = os.path.join(test_path, file)
-        img = read_slide(slide_path, 1024)
-        print(img.shape)
+def find_slide_path(group_path, file_type=".svs"):
+    """
+    Determine the slide paths based on the group path
+    If there is a HE slide in the group, it should be the first
+    """
+    # Find the slides
+    slide_paths = list()
+    for file in sorted(os.listdir(group_path)):
+        if file.endswith(file_type):
+            slide_path = os.path.join(group_path, file)
+            slide_paths.append(slide_path)
+    # Check slides number
+    if len(slide_paths) != 2:
+        raise Exception(f"{len(slide_paths)} slides detected, which should be 2")
+    # Handle the HE slide in advance, if it exists
+    if "HE" in slide_paths[1]:
+        result = (slide_paths[1], slide_paths[0])
+    else:
+        result = (slide_paths[0], slide_paths[1])
 
-    print("Program finished.")
+    return result
+
+def find_landmarks_path(slide_path):
+    """
+    Determine the landmarks path based on the slide path
+    """
+    # Determine the group path
+    group_path = os.path.dirname(slide_path)
+    # Determine the landmarks path
+    landmarks_path = os.path.join(group_path, "landmarks")
+    landmarks_folders = os.listdir(landmarks_path)
+    # Determine the slide name
+    slide_name = os.path.splitext(os.path.basename(slide_path))[0]
+    # Get result
+    if slide_name in landmarks_folders[0]:
+        result = os.path.join(landmarks_path, landmarks_folders[0])
+    elif slide_name in landmarks_folders[1]:
+        result = os.path.join(landmarks_path, landmarks_folders[1])
+    else:
+        raise Exception("Landmarks not found.")
     
+    return result
+
+def find_magnification(group_path):
+    """
+    Determine the magnification of this group
+    """
+    if "magnification" in group_path:
+        magnification = "40x"
+    else:
+        magnification = "20x"
+    
+    return magnification
+
+def find_stain_type(slide_path):
+    """
+    Determine the stain type of this slide
+    """
+    slide_name = os.path.basename(slide_path)
+    if "HE" in slide_name:
+        result = "HE"
+    else:
+        result = "IHC"
+
+    return result
