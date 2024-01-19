@@ -165,8 +165,8 @@ def evaluate(result_path):
     eva_data_path = os.path.join(result_path, "eva_data")
     kps_1_path = os.path.join(eva_data_path, "match_kps_1.npy")
     kps_2_path = os.path.join(eva_data_path, "match_kps_2.npy")
-    img_1_path = os.path.join(result_path, "slide-3", "img_origin.png")
-    img_2_path = os.path.join(result_path, "slide-4", "img_origin.png")
+    img_1_path = os.path.join(result_path, "slide-1", "img_origin.png")
+    img_2_path = os.path.join(result_path, "slide-2", "img_origin.png")
     # Read keypoints data from npy files
     kps_1 = np.load(kps_1_path).astype(np.int32)
     kps_2 = np.load(kps_2_path).astype(np.int32)
@@ -224,7 +224,6 @@ def evaluate(result_path):
     return
     
 if __name__ == '__main__':
-    evaluate("../result-1")
-    # evaluate("/mnt/Disk1/whole_slide_image_analysis/Lizhengxiong/Projects/MultiRingSpace/archive/eva_ready/BC-8-group1")
+    evaluate("../result")
     
     print("Program finished!")
