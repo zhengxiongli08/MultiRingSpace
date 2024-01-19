@@ -195,16 +195,16 @@ def register():
     stain_type_2 = find_stain_type(slide_2_path)
     resize_h_l = params["resize_height_large"]
     resize_h_s = params["resize_height_small"]
-    # Read both slides
+    # Read both slides and resize them
     slide_1 = read_slide(slide_1_path)
-    slide_2 = read_slide(slide_2_path)
-    # Resize images
-    resize_h_l_2 = int(slide_2.shape[0] * (resize_h_l / slide_1.shape[0]))
-    resize_h_s_2 = int(resize_h_l_2 * (resize_h_s / resize_h_l))
     img_origin_1_large = my_resize(slide_1, resize_h_l)
+    slide_1_h = slide_1.shape[0]
+    del slide_1
+    slide_2 = read_slide(slide_2_path)
+    resize_h_l_2 = int(slide_2.shape[0] * (resize_h_l / slide_1_h))
+    resize_h_s_2 = int(resize_h_l_2 * (resize_h_s / resize_h_l))
     img_origin_2_large = my_resize(slide_2, resize_h_l_2)
-    # Remove huge variables
-    del slide_1, slide_2
+    del slide_2
     # Preprocess images
     img_nobg_1_large, mask_1_large = bg_remove(img_origin_1_large)
     img_nobg_2_large, mask_2_large = bg_remove(img_origin_2_large)
