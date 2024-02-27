@@ -13,17 +13,25 @@ import faiss
 import heapq
 import cv2
 import time
+import taichi as ti
 
 
-def Euclidean(MatrixA, MatrixB):
-    # 输入：
-    # MatrixA, MatrixB: Numpy数据类型,MatrixA的每行与MatrixB的每行计算欧氏距离，Distance中列=MatrixB的行数，其行=MatrixA的行数
-    # 输出:
-    # Distance行对应A图上的坐标顺序，列对应B图上的坐标顺序，注意【输出的是距离的平方】
-    #
-    MatrixB = MatrixB.T
-    Distance = np.dot(MatrixA ** 2, np.ones(MatrixB.shape)) + np.dot(np.ones(MatrixA.shape), MatrixB ** 2) - 2 * np.dot(MatrixA, MatrixB)
-    return np.float32(Distance)
+def Euclidean(eigens_1, eigens_2):
+    @ti.kernel
+    def _Euclidean3(eigens_1: ti.types.ndarray(), eigens_2: ti.types.ndarray(), result: ti.types.ndarray()):
+        for i, j in ti.ndrange((0, result.shape[0]), (0, result.shape[1])):
+            sum_value = 0.0
+            for index in range(0, eigens_1.shape[1]):
+                temp = ti.pow((eigens_1[i, index] - eigens_2[j, index]), 2)
+                sum_value += temp
+            result[i, j] = sum_value
+        
+        return
+
+    result = np.zeros((eigens_1.shape[0], eigens_2.shape[0]))
+    _Euclidean3(eigens_1, eigens_2, result)
+
+    return result
 
 def RemoveRepetition(Index_Similar, Similarity, Order_Keypoint):
     """
@@ -118,8 +126,7 @@ def NearKeypoint(Keypoint, NumNear, SearchKeypoint):
     # 搜索各个KP周围包括本身在内的Num_NearKP+1个近邻KPs, 并返回距离【输出是升序的】
     Distance, IndexNear = Index_L2.search(SearchKeypoint.astype('float32'), NumNear)
     # 去掉无用的KP自身的近邻
-    # Distance = np.delete(Distance, 0, axis=1)    # 不能去掉注释
-    # IndexNear = np.delete(IndexNear, 0, axis=1)  # 不能去掉注释
+
     return Distance, IndexNear
 
 def EstimateAffineTransformation(KeypointA, KeypointB):
@@ -173,7 +180,7 @@ def GeometricConsistency_Guide(KeypointA, KeypointB, Magnification):
     # Aff_M: 是引导匹配所需的坐标变换矩阵,与图像magnification有关,与输出的KeypointA, KeypointB不是直接相关
     #
     # 初始化参数
-    T_NumKP = 50                 # 控制最后一次成对关键点的数目
+    T_NumKP = 100                 # 控制最后一次成对关键点的数目
     T_IterativeResolution = 0.7  # 该值属于[0~1],取0与1非法,值越小迭代次数越少，结果越不稳定
     # Num_GoodKP = T_NumKP + 1   # 确保Num>T_NumKP首次执行满足条件
     Loop = 0                     # 统计迭代次数
@@ -254,7 +261,7 @@ def LastGeometricConsistency(KeypointA, KeypointB):
     # KeypointA, KeypointB: Numpy数据格式,各行一一对应
     #
     # 初始化参数
-    T_IterativeResolution = 0.90  # 该值属于[0~1],取0与1非法, 从成对的关键点中保留几何一致的前90%个
+    T_IterativeResolution = 0.50  # 0.5-0.8该值属于[0~1],取0与1非法, 从成对的关键点中保留几何一致的前90%个
     #
     # 搜索范围
     Num_NearSearch_InRegion = KeypointA.shape[0] // 9  # 9宫格范围
@@ -324,13 +331,27 @@ def KeypintInRegion(PointA_NoRep, PointB_NoRep):
     PointB_RR = PointB_NoRep[Region_Right]   # PointB_InRightRegion
     PointA = {'MR':PointA_MR, 'UR':PointA_UR, 'DR':PointA_DR, 'LR':PointA_LR, 'RR':PointA_RR}
     PointB = {'MR':PointB_MR, 'UR':PointB_UR, 'DR':PointB_DR, 'LR':PointB_LR, 'RR':PointB_RR}
-    # 显示分区中的点
-    # Draw.PointLine(PointA_MR, PointB_MR, SizeKps=10, LineWidth=0.1)
-    # Draw.PointLine(PointA_UR, PointB_UR, SizeKps=10, LineWidth=0.1)
-    # Draw.PointLine(PointA_DR, PointB_DR, SizeKps=10, LineWidth=0.1)
-    # Draw.PointLine(PointA_LR, PointB_LR, SizeKps=10, LineWidth=0.1)
-    # Draw.PointLine(PointA_RR, PointB_RR, SizeKps=10, LineWidth=0.1)
+    
     return PointA, PointB
+
+def foo2(eigens_1, eigens_2, index_2):
+    """Memory friendly function"""
+    @ti.kernel
+    def _foo2(eigens_1: ti.types.ndarray(), eigens_2: ti.types.ndarray(), index_2: ti.types.ndarray(), result: ti.types.ndarray()):
+        for i, j in ti.ndrange((0, result.shape[0]), (0, result.shape[1])):
+            coor = index_2[i, j]
+            sum_value = ti.cast(0, ti.f64)
+            for k in range(0, eigens_2.shape[1]):
+                sum_value += ti.pow((eigens_1[i, k] - eigens_2[coor, k]), 2)
+            
+            result[i, j] = ti.sqrt(sum_value)
+
+        return
+
+    result = np.zeros_like(index_2, dtype=np.float64)
+    _foo2(eigens_1, eigens_2, index_2, result)
+    
+    return result
 
 def LocalMatching(PointA, EncodeA, TransMat, PointB, EncodeB, W_LocalRegionSize=0.2):
     """
@@ -355,23 +376,16 @@ def LocalMatching(PointA, EncodeA, TransMat, PointB, EncodeB, W_LocalRegionSize=
     # 搜索映射坐标周围的关键点索引
     Distance, Index_PointB_Near = NearKeypoint(PointB, Num_NearPoint, Point_Map)  # Num_NearPoint
     # ++映射坐标与其周围关键点的相似性
-    # S1: A[B]numpy高级索引: 使用B中的每一行作为索引从A中获取行
-    EncodeB_Near = EncodeB[Index_PointB_Near]
-    # S2: 最近邻相似性矩阵
-    Similarity_Around = np.linalg.norm(EncodeB_Near - EncodeA[:, np.newaxis, :], axis=2)
+    Similarity_Around = foo2(EncodeA, EncodeB, Index_PointB_Near)
     # 获得局部最相似索引
     Index_Similar_Around = np.argmin(Similarity_Around, axis=1)
     # 依据局部最相似，索引出与KPA粗匹配的KPB
     Index_PointB_Around = Index_PointB_Near[range(Index_Similar_Around.shape[0]), Index_Similar_Around]
-    # 显示局部区域的粗匹配结果
-    # Draw.PointLine(PointA, PointB[Index_PointB_Around, SizeKps=10, LineWidth=0.1)
     # 降重
     Index_PointA, Index_PointB = RemoveRepetition_Local(Index_PointB_Around, Similarity_Around, Index_Similar_Around, np.arange(PointA.shape[0]))
     PointA_NoRep = PointA[Index_PointA]
     PointB_NoRep = PointB[Index_PointB]
     print(f'局部粗匹配获得{Index_PointA.shape[0]}个成对的关键点,此时还未执行基于区域的几何一致性评估')
-    # 查看将重后局部匹配的粗匹配结果
-    # Draw.PointLine(PointA_NoRep, PointB_NoRep, SizeKps=10, LineWidth=1.5)
     # 区域内成对的关键点
     PA, PB = KeypintInRegion(PointA_NoRep, PointB_NoRep)
     # 在划分区域的内分别进行几何一致性评估
@@ -420,8 +434,6 @@ def Matching_Origin(KeypointA, EncodeA, KeypointB, EncodeB, Magnification):
     Index_Similar = np.argmin(Similarity, axis=1)
     # 降重
     Index_KeypointA, Index_KeypointB = RemoveRepetition(Index_Similar, Similarity, Order_KeypointA)
-    # 绘制暴力匹配降重后的结果
-    # Draw.PointLine(KeypointA[Index_KeypointA], KeypointB[Index_KeypointB], SizeKps=10, LineWidth=1.5)
     # 几何一致性匹配
     KeypointA_GC, KeypointB_GC, Transform = GeometricConsistency_Guide(KeypointA[Index_KeypointA], KeypointB[Index_KeypointB], Magnification)
     return KeypointA_GC, KeypointB_GC, Transform
@@ -442,8 +454,6 @@ def Matching_Guide(Transform, KeypointA, EncodeA, KeypointB, EncodeB, W_LocalReg
     #
     # 局部匹配
     MatchPointA, MatchPointB = DoLocalMatching(KeypointA, EncodeA, Transform, KeypointB, EncodeB, W_LocalRegionSize)
-    # 显示局部匹配结果
-    # Draw.PointLine(MatchPointA, MatchPointB, SizeKps=10, LineWidth=1.5)
     # 估计变换矩阵
     MatchResultA, MatchResultB, Transform, Mask = EstimateAffineTransformation(MatchPointA, MatchPointB)
     return MatchResultA, MatchResultB, Transform
@@ -471,6 +481,7 @@ def Matching_TwoMapping(KeypointA_Origin, EncodeA_Origin, KeypointB_Origin, Enco
     # 输出：
     # :匹配结果
     #
+    ti.init(arch=ti.cpu)
     E_Start = time.time()
     # 实施第一级起点匹配
     ResultA_Origin, ResultB_Origin, Transform_Origin = Matching_Origin(KeypointA_Origin, EncodeA_Origin, KeypointB_Origin, EncodeB_Origin, Magnification)

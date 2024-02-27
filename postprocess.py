@@ -12,7 +12,7 @@ ARCHIVE_PATH = "../archive/warehouse"
 
 # Functions
 def postprocess(exp_path):
-    pixel_errors = list()
+    pixel_errors = list() 
     um_errors = list()
     for group in natsorted(os.listdir(exp_path)):
         group_path = os.path.join(exp_path, group)

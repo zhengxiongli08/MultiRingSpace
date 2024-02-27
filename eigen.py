@@ -11,6 +11,15 @@ import time
 
 # Functions
 @njit
+def find_mean(array):
+    if array.shape[0] != 0:
+        result = np.mean(array)
+    else:
+        result = 0
+
+    return result
+    
+@njit
 def local_conv(img, kernel, coor_h, coor_w):
     """
     Function:
@@ -26,23 +35,16 @@ def local_conv(img, kernel, coor_h, coor_w):
     # Calculate the convolution result
     radius = int((kernel.shape[0] - 1) / 2)
     img_part = img[coor_h-radius:coor_h+radius+1, coor_w-radius:coor_w+radius+1]
-    temp = np.ravel(img_part * kernel)
-    overall = np.mean(temp)
+    entirety = np.ravel(img_part * kernel)
+    overall = np.mean(entirety)
     # Divide the dot product results by the convolution result
-    temp1 = temp[temp > overall]
-    temp2 = temp[(temp <= overall) & (temp > 0)]
+    greater_part = entirety[entirety > overall]
+    less_part = entirety[(entirety <= overall) & (entirety > 0)]
     # Determine whether the part is empty or not
-    if temp1.shape[0] != 0:
-        greater_part = np.mean(temp1)
-    else:
-        greater_part = 0
-    
-    if temp2.shape[0] != 0:
-        less_part = np.mean(temp2)
-    else:
-        less_part = 0
-    
-    result = np.array((overall, greater_part, less_part))
+    greater_part_mean = find_mean(greater_part)
+    less_part_mean = find_mean(less_part)
+
+    result = np.array((overall, greater_part_mean, less_part_mean))
 
     return result
 

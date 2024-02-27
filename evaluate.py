@@ -10,6 +10,7 @@ from logger import Logger
 from natsort import natsorted
 from draw import draw_line, my_hstack
 from preprocess import *
+from lxx import transform_match_location
 
 
 # Functions
@@ -133,6 +134,21 @@ def quantize(coords_1, coords_2, affine_matrix, resize_factor, magnification):
     
     return pixel_errors, um_errors
 
+def quantize2(coords_1, coords_2, kps_1, kps_2, resize_factor, magnification):
+    coords_2_new, _ = transform_match_location(coords_2, kps_2, kps_1, 500)
+    # Calculate Euclidean Distances and pixel errors
+    pixel_errors = np.linalg.norm(coords_1 - coords_2_new, axis=1)
+    top_pixel_errors = pixel_errors / resize_factor
+    # Calculate the real world errors in um
+    um_errors = np.zeros_like(pixel_errors)
+    for i in range(0, um_errors.shape[0]):
+        temp = pixel2um(top_pixel_errors[i], magnification)
+        if temp > 400:
+            temp = 400
+        um_errors[i] = temp
+    
+    return pixel_errors, um_errors
+
 def random_rows(kps_1, kps_2, rows_num=100):
     """
     Randomly extract some rows from current matrix
@@ -170,7 +186,6 @@ def evaluate(result_path):
     # Read keypoints data from npy files
     kps_1 = np.load(kps_1_path).astype(np.int32)
     kps_2 = np.load(kps_2_path).astype(np.int32)
-    kps_1, kps_2 = random_rows(kps_1, kps_2, 100)
     # Read thumbnails
     img_1 = cv.imread(img_1_path)
     img_2 = cv.imread(img_2_path)
@@ -184,7 +199,8 @@ def evaluate(result_path):
     
     # Draw lines before affine transformation
     img_combo = my_hstack(img_1, img_2)
-    img_match = draw_line(img_1, img_2, kps_1, kps_2, thickness=2)
+    kps_1_draw, kps_2_draw = random_rows(kps_1, kps_2, 100)
+    img_match = draw_line(img_1, img_2, kps_1_draw, kps_2_draw, thickness=2)
     img_match_manual = draw_line(img_1, img_2, coords_1, coords_2, thickness=3)
     img_match_combo = np.vstack((img_match_manual, img_match))
     # Do affine transformation
@@ -192,16 +208,26 @@ def evaluate(result_path):
     
     # Quantize
     pixel_errors, um_errors = quantize(coords_1, coords_2, affine_matrix, resize_factor_1, magnification)
+    pixel_errors2, um_errors2 = quantize2(coords_1, coords_2, kps_1, kps_2, resize_factor_1, magnification)
     
     pixel_error = np.mean(pixel_errors)
     um_error = np.mean(um_errors)
     
+    myLogger.print("Evaluation globally:")
     myLogger.print(f"Max pixel error: {np.max(pixel_errors):.2f} pixels.")
     myLogger.print(f"Min pixel error: {np.min(pixel_errors):.2f} pixels.")
     myLogger.print(f"Max um error: {np.max(um_errors):.2f}um.")
     myLogger.print(f"Min um error: {np.min(um_errors):.2f}um.")
     myLogger.print(f"Pixel error: {pixel_error:.2f} pixels.")
     myLogger.print(f"um error: {um_error:.2f}um")
+    
+    myLogger.print("Evaluation locally:")
+    myLogger.print(f"Max pixel error: {np.max(pixel_errors2):.2f} pixels.")
+    myLogger.print(f"Min pixel error: {np.min(pixel_errors2):.2f} pixels.")
+    myLogger.print(f"Max um error: {np.max(um_errors2):.2f}um.")
+    myLogger.print(f"Min um error: {np.min(um_errors2):.2f}um.")
+    myLogger.print(f"Pixel error: {np.mean(pixel_errors2):.2f} pixels.")
+    myLogger.print(f"um error: {np.mean(um_errors2):.2f}um")
     
     # Save results
     eva_result_path = os.path.join(result_path, "eva_result")

@@ -18,7 +18,6 @@ from conv import get_mask_list, get_conv_list, get_diff_list
 from keypoint import get_kps, get_kps_from_mask, get_color_keypoint_img
 from eigen import get_eigens
 from match import Matching_TwoMapping
-from match2 import Matching
 
 
 # Functions
@@ -41,7 +40,7 @@ def get_params():
     parser.add_argument("--overlap_factor", type=int, default=3, help="overlap factor for multiple rings")
     parser.add_argument("--resize_height_large", type=int, default=1024, help="large image's height for slide 1")
     parser.add_argument("--resize_height_small", type=int, default=128, help="small image's height for slide 1")
-    parser.add_argument("--keypoint_radius", type=int, default=3, help="radius of keypoints detect region")
+    parser.add_argument("--keypoint_radius", type=int, default=1, help="radius of keypoints detect region")
     # Initialize parser
     args = parser.parse_args()
     # Clean up result folder
@@ -274,16 +273,18 @@ def register():
                                                                kps_2_large, 
                                                                eigens_2_large)
     
-    # match_kps_1, match_kps_2 = Matching(kps_1_large, eigens_1_large, kps_2_large, eigens_2_large)
-    
     # Save data for evaluation
     eva_data_path = os.path.join(result_path, "eva_data")
     os.makedirs(eva_data_path, exist_ok=True)
     # Save match keypoints
     match_kps_1_path = os.path.join(eva_data_path, "match_kps_1.npy")
     match_kps_2_path = os.path.join(eva_data_path, "match_kps_2.npy")
+    match_kps_11_path = os.path.join(eva_data_path, "match_kps_11.npy")
+    match_kps_22_path = os.path.join(eva_data_path, "match_kps_22.npy")
     np.save(match_kps_1_path, match_kps_1)
     np.save(match_kps_2_path, match_kps_2)
+    np.save(match_kps_11_path, match_kps_11)
+    np.save(match_kps_22_path, match_kps_22)
     # Save parameters dictionary
     params_json = os.path.join(eva_data_path, "params.json")
     with open(params_json, "w") as file:
