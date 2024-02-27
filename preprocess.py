@@ -29,15 +29,51 @@ def read_slide(slide_path):
 
     return img
 
-def bg_remove(img_origin):
+def clahe_process(img_gray, stain_type):
+    """
+    Process the image using histo-equalization
+    Input and output images are gray-scale images
+    """
+    # Create the clahe
+    if stain_type == "HE":
+        clahe = cv.createCLAHE(clipLimit=2, tileGridSize=(8, 8))
+    elif stain_type == "IHC":
+        clahe = cv.createCLAHE(clipLimit=4, tileGridSize=(8, 8))
+    else:
+        raise Exception("Stain type not supported.")
+    # Preprocess it
+    result = clahe.apply(img_gray)
+
+    return result
+
+def colorful_clahe(img, stain_type):
+    """
+    Process the image using histo-equalization
+    Input and output are both colorful images
+    """
+    # Split the channels
+    channels = img.shape[2]
+    temp = list()
+    for i in range(0, channels):
+        single_channel = img[:, :, i]
+        single_gray = clahe_process(single_channel, stain_type)
+        temp.append(single_gray)
+    # Merge multiplt channels
+    result = cv.merge(temp)
+
+    return result
+
+def bg_remove(img_origin, stain_type):
     """
     Remove the background using rembg
     Input and output images are BGR channels
     """
     # Convert color
     img_rgb = cv.cvtColor(img_origin, cv.COLOR_BGR2RGB)
+    # Increase the contrast by local histo-equalization
+    img_balanced = colorful_clahe(img_rgb, stain_type)
     # Get the mask for it
-    temp = rembg.remove(img_rgb, only_mask=True)
+    temp = rembg.remove(img_balanced, only_mask=True)
     mask = np.where(temp > 100, 1, 0)
     # Remove background
     img_nobg = np.multiply(img_rgb, mask[:, :, np.newaxis]).astype(np.uint8)
@@ -51,15 +87,9 @@ def trans_gray(img, stain_type):
     Transform the BGR image into gray scale
     Local Histogram Equalization is used based on the stain type of this slide
     """
-    if stain_type == "HE":
-        clahe = cv.createCLAHE(clipLimit=2, tileGridSize=(8, 8))
-    elif stain_type == "IHC":
-        clahe = cv.createCLAHE(clipLimit=4, tileGridSize=(8, 8))
-    else:
-        raise Exception("Stain type not supported.")
     # Get the gray scale image
     img_gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-    img_gray = clahe.apply(img_gray)
+    img_gray = clahe_process(img_gray, stain_type)
     
     return img_gray
 

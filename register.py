@@ -205,8 +205,8 @@ def register():
     img_origin_2_large = my_resize(slide_2, resize_h_l_2)
     del slide_2
     # Preprocess images
-    img_nobg_1_large, mask_1_large = bg_remove(img_origin_1_large)
-    img_nobg_2_large, mask_2_large = bg_remove(img_origin_2_large)
+    img_nobg_1_large, mask_1_large = bg_remove(img_origin_1_large, stain_type_1)
+    img_nobg_2_large, mask_2_large = bg_remove(img_origin_2_large, stain_type_2)
     img_origin_gray_1_large = trans_gray(img_origin_1_large, stain_type_1)
     img_origin_gray_2_large = trans_gray(img_origin_2_large, stain_type_2)
     img_nobg_gray_1_large = trans_gray(img_nobg_1_large, stain_type_1)
