@@ -142,10 +142,7 @@ def quantize2(coords_1, coords_2, kps_1, kps_2, resize_factor, magnification):
     # Calculate the real world errors in um
     um_errors = np.zeros_like(pixel_errors)
     for i in range(0, um_errors.shape[0]):
-        temp = pixel2um(top_pixel_errors[i], magnification)
-        if temp > 400:
-            temp = 400
-        um_errors[i] = temp
+        um_errors[i] = pixel2um(top_pixel_errors[i], magnification)
     
     return pixel_errors, um_errors
 
@@ -242,7 +239,12 @@ def evaluate(result_path):
     cv.imwrite(img_match_manual_path, img_match_manual)
     cv.imwrite(img_match_combo_path, img_match_combo)
     # Results of errors
-    errors = {"pixel_error": pixel_error, "um_error": um_error}
+    errors = dict()
+    errors["status"] = "successful"
+    errors["pixel_errors"] = list(pixel_errors)
+    errors["um_errors"] = list(um_errors)
+    errors["pixel_errors_lxx"] = list(pixel_errors2)
+    errors["um_errors_lxx"] = list(um_errors2)
     errors_path = os.path.join(eva_result_path, "errors.json")
     with open(errors_path, "w") as json_file:
         json.dump(errors, json_file)

@@ -481,7 +481,7 @@ def Matching_TwoMapping(KeypointA_Origin, EncodeA_Origin, KeypointB_Origin, Enco
     # 输出：
     # :匹配结果
     #
-    ti.init(arch=ti.cpu)
+    ti.init(arch=ti.gpu)
     E_Start = time.time()
     # 实施第一级起点匹配
     ResultA_Origin, ResultB_Origin, Transform_Origin = Matching_Origin(KeypointA_Origin, EncodeA_Origin, KeypointB_Origin, EncodeB_Origin, Magnification)

@@ -162,8 +162,6 @@ def get_diff_list(conv_list: list, img_nobg_gray: np.ndarray) -> list:
         list of differntial results
     """
     diff_list = list()
-    depth = len(conv_list) - 1
-    # for i in range(0, depth):
     for i in range(0, len(conv_list)):
         img_diff = np.abs(img_nobg_gray - conv_list[i])
         diff_list.append(img_diff)

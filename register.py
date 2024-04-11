@@ -25,8 +25,8 @@ def get_params():
     """
     Receive parameters from terminal
     """
-    long_str1 = "/mnt/Disk1/whole_slide_image_analysis/Lizhengxiong/Projects/MultiRingSpace/BiopsyDatabase/WSI_100Cases/BC-9-group2"
-    long_str2 = "/mnt/Disk1/whole_slide_image_analysis/Lizhengxiong/Projects/MultiRingSpace/result"
+    long_str1 = "/mnt/Disk1/lizhengxiong/Projects/MultiRingSpace/BiopsyDatabase/WSI_100Cases/BC-9-group2"
+    long_str2 = "/mnt/Disk1/lizhengxiong/Projects/MultiRingSpace/result"
     parser = argparse.ArgumentParser(description="Indicate parameters, use --help for help.")
     parser.add_argument("--group_path", type=str, default=long_str1, help="group's path")
     parser.add_argument("--result_path", type=str, default=long_str2, help="result's folder")
@@ -162,11 +162,14 @@ def compute(img_origin,
         cv.imwrite(diff_img_path, diff_list[i])
     # Save keypoints map
     img_color = get_color_keypoint_img(img_nobg, kps)
-    kp_color_path = os.path.join(slide_result_path, f"img_kp_color.png")
+    kp_color_path = os.path.join(slide_result_path, "img_kp_color.png")
     cv.imwrite(kp_color_path, img_color)
     
+    kps_path = os.path.join(slide_result_path, "kps.npy")
+    np.save(kps_path, kps)
+    
     # Temp save
-    img_mean_path = os.path.join(slide_result_path, f"img_mean.png")
+    img_mean_path = os.path.join(slide_result_path, "img_mean.png")
     cv.imwrite(img_mean_path, img_mean)
     
     return kps, eigens, diff_list
@@ -263,33 +266,36 @@ def register():
     
     # Match them
     myLogger.print("Matching...")
-    match_kps_11, match_kps_22, _, _, match_kps_1, match_kps_2 = Matching_TwoMapping(kps_1_small, 
-                                                               eigens_1_small, 
-                                                               kps_2_small, 
-                                                               eigens_2_small, 
-                                                               (resize_h_l / resize_h_s), 
-                                                               kps_1_large, 
-                                                               eigens_1_large, 
-                                                               kps_2_large, 
-                                                               eigens_2_large)
-    
-    # Save data for evaluation
-    eva_data_path = os.path.join(result_path, "eva_data")
-    os.makedirs(eva_data_path, exist_ok=True)
-    # Save match keypoints
-    match_kps_1_path = os.path.join(eva_data_path, "match_kps_1.npy")
-    match_kps_2_path = os.path.join(eva_data_path, "match_kps_2.npy")
-    match_kps_11_path = os.path.join(eva_data_path, "match_kps_11.npy")
-    match_kps_22_path = os.path.join(eva_data_path, "match_kps_22.npy")
-    np.save(match_kps_1_path, match_kps_1)
-    np.save(match_kps_2_path, match_kps_2)
-    np.save(match_kps_11_path, match_kps_11)
-    np.save(match_kps_22_path, match_kps_22)
-    # Save parameters dictionary
-    params_json = os.path.join(eva_data_path, "params.json")
-    with open(params_json, "w") as file:
-        json.dump(params, file)
-    myLogger.print(f"Process complete. Check your results in {result_path}.")
+    try:
+        match_kps_11, match_kps_22, _, _, match_kps_1, match_kps_2 = Matching_TwoMapping(kps_1_small, 
+                                                                eigens_1_small, 
+                                                                kps_2_small, 
+                                                                eigens_2_small, 
+                                                                (resize_h_l / resize_h_s), 
+                                                                kps_1_large, 
+                                                                eigens_1_large, 
+                                                                kps_2_large, 
+                                                                eigens_2_large)
+        
+        # Save data for evaluation
+        eva_data_path = os.path.join(result_path, "eva_data")
+        os.makedirs(eva_data_path, exist_ok=True)
+        # Save match keypoints
+        match_kps_1_path = os.path.join(eva_data_path, "match_kps_1.npy")
+        match_kps_2_path = os.path.join(eva_data_path, "match_kps_2.npy")
+        match_kps_11_path = os.path.join(eva_data_path, "match_kps_11.npy")
+        match_kps_22_path = os.path.join(eva_data_path, "match_kps_22.npy")
+        np.save(match_kps_1_path, match_kps_1)
+        np.save(match_kps_2_path, match_kps_2)
+        np.save(match_kps_11_path, match_kps_11)
+        np.save(match_kps_22_path, match_kps_22)
+        # Save parameters dictionary
+        params_json = os.path.join(eva_data_path, "params.json")
+        with open(params_json, "w") as file:
+            json.dump(params, file)
+        myLogger.print(f"Process complete. Check your results in {result_path}.")
+    except:
+        myLogger.print("Error when matching. Program aborted.")
     
     return
 
