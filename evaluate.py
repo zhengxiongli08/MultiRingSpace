@@ -247,7 +247,7 @@ def evaluate(result_path):
     errors["um_errors_lxx"] = list(um_errors2)
     errors_path = os.path.join(eva_result_path, "errors.json")
     with open(errors_path, "w") as json_file:
-        json.dump(errors, json_file)
+        json.dump(errors, json_file, indent=4)
 
     return
     

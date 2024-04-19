@@ -292,7 +292,7 @@ def register():
         # Save parameters dictionary
         params_json = os.path.join(eva_data_path, "params.json")
         with open(params_json, "w") as file:
-            json.dump(params, file)
+            json.dump(params, file, indent=4)
         myLogger.print(f"Process complete. Check your results in {result_path}.")
     except:
         myLogger.print("Error when matching. Program aborted.")
